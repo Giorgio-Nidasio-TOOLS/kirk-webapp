@@ -73,6 +73,10 @@ header {
 }
 .message.user .bubble { border-radius: 16px 16px 4px 16px; background: var(--accent); }
 .bubble p { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
+.bubble p strong { color: #e2b96f; }
+.bubble p em { color: #a0c4ff; font-style: italic; }
+.bubble p code { background: #0d1f3c; color: #7dd3a8; padding: 1px 5px; border-radius: 4px; font-size: 0.82rem; font-family: monospace; }
+.bubble p .md-h { display: block; font-size: 1rem; margin-bottom: 4px; color: var(--highlight); }
 .bubble time { font-size: 0.7rem; color: var(--text-dim); display: block; margin-top: 4px; }
 
 .message.new { animation: fadeIn 0.25s ease; }

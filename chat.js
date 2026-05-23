@@ -41,7 +41,7 @@ function _render(role, content, timestamp, animate) {
   div.innerHTML = `
     ${avatarHtml}
     <div class="bubble">
-      <p>${_escape(content)}</p>
+      <p>${_renderMarkdown(content)}</p>
       <time>${time}</time>
     </div>`;
 
@@ -54,10 +54,20 @@ function _scrollBottom() {
   el.scrollTop = el.scrollHeight;
 }
 
-function _escape(str) {
-  return str
+function _renderMarkdown(str) {
+  let s = str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
+    .replace(/>/g, "&gt;");
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*([^*\n]+?)\*/g, "<em>$1</em>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/^#{1,3} (.+)$/gm, "<strong class='md-h'>$1</strong>");
+  s = s.replace(/^[-*] (.+)$/gm, "• $1");
+  s = s.replace(/^\d+\. (.+)$/gm, (_, item, offset, full) => {
+    const num = full.slice(0, offset).split("\n").filter(l => /^\d+\./.test(l)).length + 1;
+    return `${num}. ${item}`;
+  });
+  s = s.replace(/\n/g, "<br>");
+  return s;
 }
