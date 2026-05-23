@@ -1,7 +1,7 @@
 {
-  "name": "Kirk",
+  "name": "Comandante Kirk a Enterprise",
   "short_name": "Kirk",
-  "description": "Comando remoto per Claude",
+  "description": "Comando remoto per Claude — Teletrasporto attivo",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1a1a2e",

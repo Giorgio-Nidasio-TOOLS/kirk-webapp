@@ -58,6 +58,10 @@ header {
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
 }
+.avatar.photo {
+  object-fit: cover;
+  background: none;
+}
 .message.user .avatar { background: var(--highlight); }
 
 .bubble {

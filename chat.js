@@ -29,14 +29,17 @@ function _render(role, content, timestamp, animate) {
   const div = document.createElement("div");
   div.className = `message ${role === "user" ? "user" : "assistant"}${animate ? " new" : ""}`;
 
-  const label = role === "user" ? "G" : "K";
+  const isUser = role === "user";
   const time = new Date(timestamp).toLocaleTimeString("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const avatarHtml = isUser
+    ? `<img class="avatar photo" src="./user-avatar.jpg" alt="G" onerror="this.outerHTML='<span class=\\'avatar\\'>G</span>'">`
+    : `<span class="avatar">K</span>`;
 
   div.innerHTML = `
-    <span class="avatar">${label}</span>
+    ${avatarHtml}
     <div class="bubble">
       <p>${_escape(content)}</p>
       <time>${time}</time>

@@ -14,7 +14,12 @@ export function speak(text) {
   utt.lang = "it-IT";
   utt.rate = 1.0;
   const voices = window.speechSynthesis.getVoices();
-  const itVoice = voices.find((v) => v.lang.startsWith("it"));
+  const itVoices = voices.filter((v) => v.lang.startsWith("it"));
+  const maleVoice = itVoices.find((v) => {
+    const n = v.name.toLowerCase();
+    return n.includes("male") || n.includes("uomo") || n.includes("cosimo") || n.includes("luca") || n.includes("matteo") || n.includes("giorgio");
+  });
+  const itVoice = maleVoice || itVoices[0];
   if (itVoice) utt.voice = itVoice;
   window.speechSynthesis.speak(utt);
 }
