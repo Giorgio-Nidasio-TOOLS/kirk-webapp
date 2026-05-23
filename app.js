@@ -27,6 +27,7 @@ async function init() {
   try {
     await checkHealth();
     _setStatus("Kirk pronto", "ok");
+    setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 500);
   } catch {
     _setStatus("Kirk non raggiungibile — controlla tunnel e server", "error");
   }
