@@ -1,4 +1,4 @@
-const CACHE = "kirk-v1";
+const CACHE = "kirk-v2";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
@@ -21,7 +21,7 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.url.includes("cfargotunnel.com")) return;
+  if (e.request.url.includes("cfargotunnel.com") || e.request.url.includes("ngrok")) return;
   e.respondWith(
     caches.match(e.request).then((r) => r || fetch(e.request))
   );
