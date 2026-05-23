@@ -1,9 +1,10 @@
-const CACHE = "kirk-v5";
+const CACHE = "kirk-v6";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
   "./tts.js", "./chat.js", "./config.js",
-  "./manifest.json", "./icon-192.png"
+  "./manifest.json", "./icon-192.png",
+  "./user-avatar.jpg", "./kirk-avatar.jpg"
 ];
 
 self.addEventListener("install", (e) => {
