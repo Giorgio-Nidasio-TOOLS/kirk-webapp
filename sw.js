@@ -1,4 +1,4 @@
-const CACHE = "kirk-v2";
+const CACHE = "kirk-v3";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
