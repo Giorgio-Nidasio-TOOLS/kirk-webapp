@@ -36,7 +36,7 @@ function _render(role, content, timestamp, animate) {
   });
   const avatarHtml = isUser
     ? `<img class="avatar photo" src="./user-avatar.jpg" alt="G" onerror="this.outerHTML='<span class=\\'avatar\\'>G</span>'">`
-    : `<span class="avatar">K</span>`;
+    : `<img class="avatar photo" src="./kirk-avatar.jpg" alt="K" onerror="this.outerHTML='<span class=\\'avatar\\'>K</span>'">`;
 
   div.innerHTML = `
     ${avatarHtml}
