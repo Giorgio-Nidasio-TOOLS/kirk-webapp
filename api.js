@@ -8,6 +8,7 @@ async function request(path, options = {}) {
     headers: {
       "Content-Type": "application/json",
       "X-Kirk-Token": token,
+      "ngrok-skip-browser-warning": "1",
       ...(options.headers || {}),
     },
   });
