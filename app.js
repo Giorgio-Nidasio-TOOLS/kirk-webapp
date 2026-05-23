@@ -64,11 +64,16 @@ sendBtn.addEventListener("click", _sendText);
 textInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); _sendText(); }
 });
+textInput.addEventListener("input", () => {
+  textInput.style.height = "auto";
+  textInput.style.height = Math.min(textInput.scrollHeight, 120) + "px";
+});
 
 async function _sendText() {
   const text = textInput.value.trim();
   if (!text) return;
   textInput.value = "";
+  textInput.style.height = "40px";
   _setStatus("Elaborazione...", "loading");
   _setBusy(true);
   await _sendToKirk("text", text);
