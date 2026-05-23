@@ -1,0 +1,60 @@
+const HISTORY_KEY = "kirk_chat_history";
+
+function _chatEl() {
+  return document.getElementById("chat");
+}
+
+export function loadHistory() {
+  const stored = localStorage.getItem(HISTORY_KEY);
+  if (!stored) return;
+  JSON.parse(stored).forEach((msg) => _render(msg.role, msg.content, msg.timestamp, false));
+  _scrollBottom();
+}
+
+export function addMessage(role, content) {
+  const timestamp = new Date().toISOString();
+  _render(role, content, timestamp, true);
+  const stored = localStorage.getItem(HISTORY_KEY);
+  const history = stored ? JSON.parse(stored) : [];
+  history.push({ role, content, timestamp });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+export function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  _chatEl().innerHTML = "";
+}
+
+function _render(role, content, timestamp, animate) {
+  const div = document.createElement("div");
+  div.className = `message ${role === "user" ? "user" : "assistant"}${animate ? " new" : ""}`;
+
+  const label = role === "user" ? "G" : "K";
+  const time = new Date(timestamp).toLocaleTimeString("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  div.innerHTML = `
+    <span class="avatar">${label}</span>
+    <div class="bubble">
+      <p>${_escape(content)}</p>
+      <time>${time}</time>
+    </div>`;
+
+  _chatEl().appendChild(div);
+  _scrollBottom();
+}
+
+function _scrollBottom() {
+  const el = _chatEl();
+  el.scrollTop = el.scrollHeight;
+}
+
+function _escape(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
