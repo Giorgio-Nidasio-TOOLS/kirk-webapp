@@ -118,13 +118,17 @@ footer {
   font-size: 0.9rem;
   outline: none;
   resize: none;
-  overflow-y: hidden;
+  overflow-y: auto;
   height: 40px;
-  max-height: 120px;
-  line-height: 1.5rem;
   font-family: inherit;
+  line-height: 1.5rem;
+  transition: height 0.15s ease, border-radius 0.15s ease;
 }
-#text-input:focus { border-color: var(--highlight); }
+#text-input:focus {
+  border-color: var(--highlight);
+  height: 96px;
+  border-radius: 12px;
+}
 
 footer button {
   background: var(--accent);
