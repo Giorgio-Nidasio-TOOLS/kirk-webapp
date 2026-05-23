@@ -1,4 +1,4 @@
-const CACHE = "kirk-v9";
+const CACHE = "kirk-v10";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
@@ -21,9 +21,16 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
+// Network-first: sempre file freschi dalla rete, cache solo se offline
 self.addEventListener("fetch", (e) => {
   if (e.request.url.includes("cfargotunnel.com") || e.request.url.includes("ngrok")) return;
   e.respondWith(
-    caches.match(e.request).then((r) => r || fetch(e.request))
+    fetch(e.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
