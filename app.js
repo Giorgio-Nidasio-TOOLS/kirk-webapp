@@ -12,7 +12,6 @@ const sessionInfo   = document.getElementById("session-info");
 const settingsBtn   = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const muteBtn       = document.getElementById("mute-btn");
-const muteFooterBtn = document.getElementById("mute-footer-btn");
 const newSessionBtn = document.getElementById("new-session-btn");
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -126,14 +125,10 @@ newSessionBtn.addEventListener("click", async () => {
 
 // ── Mute ──────────────────────────────────────────────────────────────────────
 
-function _syncMuteBtns(muted) {
-  const icon = muted ? "🔇" : "🔊";
-  muteBtn.textContent = icon;
-  muteFooterBtn.textContent = icon;
-}
-
-muteBtn.addEventListener("click", () => _syncMuteBtns(toggleMute()));
-muteFooterBtn.addEventListener("click", () => _syncMuteBtns(toggleMute()));
+muteBtn.addEventListener("click", () => {
+  const muted = toggleMute();
+  muteBtn.textContent = muted ? "🔇" : "🔊";
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
