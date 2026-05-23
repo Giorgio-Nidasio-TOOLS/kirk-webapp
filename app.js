@@ -65,7 +65,7 @@ textInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); _sendText(); }
 });
 textInput.addEventListener("input", () => {
-  textInput.style.height = "auto";
+  textInput.style.height = "";
   textInput.style.height = Math.min(textInput.scrollHeight, 120) + "px";
 });
 
