@@ -26,6 +26,13 @@ export function sendCommand(type, data) {
   });
 }
 
+export function sendNote(type, data, filename = null) {
+  return request("/note", {
+    method: "POST",
+    body: JSON.stringify({ type, data, filename }),
+  });
+}
+
 export function getSession() {
   return request("/session");
 }

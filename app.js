@@ -1,5 +1,5 @@
 import { getConfig, saveConfig, isConfigured } from "./config.js";
-import { sendCommand, getSession, newSession, checkHealth } from "./api.js";
+import { sendCommand, getSession, newSession, checkHealth, sendNote } from "./api.js";
 import { startRecording, stopRecording, isRecording } from "./audio.js";
 import { speak, stopSpeaking, toggleMute } from "./tts.js";
 import { loadHistory, addMessage, clearHistory } from "./chat.js";
@@ -13,6 +13,14 @@ const settingsBtn   = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const muteBtn       = document.getElementById("mute-btn");
 const newSessionBtn = document.getElementById("new-session-btn");
+const noteBtn       = document.getElementById("note-btn");
+const notePanel     = document.getElementById("note-panel");
+const noteText      = document.getElementById("note-text");
+const noteMicBtn    = document.getElementById("note-mic-btn");
+const noteSendBtn   = document.getElementById("note-send-btn");
+const noteStatus    = document.getElementById("note-status");
+
+let _noteRecording = false;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +44,11 @@ async function init() {
 // ── Mic button ────────────────────────────────────────────────────────────────
 
 micBtn.addEventListener("click", async () => {
+  // Guard: if a note recording is in progress, block main mic
+  if (_noteRecording) {
+    _setStatus("Ferma la registrazione nota prima di usare il microfono", "warning");
+    return;
+  }
   if (isRecording()) {
     micBtn.classList.remove("recording");
     _setStatus("Elaborazione audio...", "loading");
@@ -91,6 +104,76 @@ async function _sendToKirk(type, data) {
   }
 }
 
+// ── Note button ───────────────────────────────────────────────────────────────
+
+noteBtn.addEventListener("click", () => {
+  notePanel.classList.toggle("hidden");
+  settingsPanel.classList.add("hidden");
+  if (!notePanel.classList.contains("hidden")) {
+    noteText.focus();
+  }
+});
+
+noteSendBtn.addEventListener("click", async () => {
+  const text = noteText.value.trim();
+  if (!text) return;
+  _setNoteStatus("Salvataggio...", "");
+  noteSendBtn.disabled = true;
+  try {
+    await sendNote("transcript", text);
+    _setNoteStatus("✓ Nota salvata", "ok");
+    noteText.value = "";
+    setTimeout(() => {
+      _setNoteStatus("", "");
+      notePanel.classList.add("hidden");
+    }, 1500);
+  } catch (err) {
+    _setNoteStatus(`Errore: ${err.message}`, "err");
+  } finally {
+    noteSendBtn.disabled = false;
+  }
+});
+
+noteMicBtn.addEventListener("click", async () => {
+  if (_noteRecording) {
+    noteMicBtn.textContent = "🎤 Registra";
+    noteMicBtn.classList.remove("recording");
+    _noteRecording = false;
+    _setNoteStatus("Salvataggio audio...", "");
+    noteMicBtn.disabled = true;
+    try {
+      const audioB64 = await stopRecording();
+      await sendNote("audio", audioB64, "nota.webm");
+      _setNoteStatus("✓ Nota salvata", "ok");
+      setTimeout(() => {
+        _setNoteStatus("", "");
+        notePanel.classList.add("hidden");
+      }, 1500);
+    } catch (err) {
+      _setNoteStatus(`Errore: ${err.message}`, "err");
+    } finally {
+      noteMicBtn.disabled = false;
+      micBtn.disabled = false;
+    }
+  } else {
+    // Guard: if main mic is recording, block note mic
+    if (isRecording()) {
+      _setNoteStatus("Ferma il microfono principale prima di registrare una nota", "err");
+      return;
+    }
+    try {
+      await startRecording();
+      _noteRecording = true;
+      noteMicBtn.textContent = "⏹ Stop";
+      noteMicBtn.classList.add("recording");
+      _setNoteStatus("Registrazione in corso...", "");
+      micBtn.disabled = true;
+    } catch {
+      _setNoteStatus("Microfono non disponibile", "err");
+    }
+  }
+});
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 settingsBtn.addEventListener("click", () => {
@@ -98,6 +181,7 @@ settingsBtn.addEventListener("click", () => {
   document.getElementById("server-url").value = c.serverUrl || "";
   document.getElementById("api-token").value  = c.token || "";
   settingsPanel.classList.toggle("hidden");
+  notePanel.classList.add("hidden");
 });
 
 document.getElementById("save-settings").addEventListener("click", () => {
@@ -151,6 +235,11 @@ async function _refreshSession() {
 function _setStatus(text, type) {
   statusBar.textContent = text;
   statusBar.className   = type || "";
+}
+
+function _setNoteStatus(text, cls) {
+  noteStatus.textContent = text;
+  noteStatus.className   = cls || "";
 }
 
 function _setBusy(busy) {

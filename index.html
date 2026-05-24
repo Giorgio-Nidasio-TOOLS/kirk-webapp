@@ -36,8 +36,19 @@
     <button id="save-settings">Salva e connetti</button>
   </div>
 
+  <div id="note-panel" class="panel hidden">
+    <h3>📝 Nuova Nota Vocale</h3>
+    <textarea id="note-text" placeholder="Scrivi la nota oppure usa il microfono..." rows="3"></textarea>
+    <div class="note-actions">
+      <button id="note-mic-btn">🎤 Registra</button>
+      <button id="note-send-btn" class="note-save">Salva Nota</button>
+    </div>
+    <div id="note-status"></div>
+  </div>
+
   <footer>
     <textarea id="text-input" placeholder="Scrivi un comando..." rows="1"></textarea>
+    <button id="note-btn" title="Nota vocale">📝</button>
     <button id="mic-btn" title="Registra voce">🎤</button>
     <button id="send-btn" title="Invia">▶</button>
   </footer>
