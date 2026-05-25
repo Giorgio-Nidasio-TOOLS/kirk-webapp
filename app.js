@@ -13,6 +13,7 @@ const settingsBtn   = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const muteBtn       = document.getElementById("mute-btn");
 const newSessionBtn = document.getElementById("new-session-btn");
+const notifBtn      = document.getElementById("notif-btn");
 const noteBtn       = document.getElementById("note-btn");
 const notePanel     = document.getElementById("note-panel");
 const noteText      = document.getElementById("note-text");
@@ -35,10 +36,10 @@ async function subscribeNotifications() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') return;
+    if (perm !== 'granted') { _updateNotifBtn(); return; }
     const reg = await navigator.serviceWorker.ready;
     const existing = await reg.pushManager.getSubscription();
-    if (existing) return;
+    if (existing) { _updateNotifBtn(); return; }
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -56,6 +57,19 @@ async function subscribeNotifications() {
   } catch (e) {
     console.warn('Push subscription failed:', e);
   }
+  _updateNotifBtn();
+}
+
+function _updateNotifBtn() {
+  if (!('Notification' in window) || !('PushManager' in window)) {
+    notifBtn.style.display = 'none';
+    return;
+  }
+  const perm = Notification.permission;
+  notifBtn.style.display = perm === 'granted' ? 'none' : 'inline-flex';
+  notifBtn.title = perm === 'denied'
+    ? 'Notifiche bloccate — abilita da Impostazioni Chrome'
+    : 'Tocca per abilitare le notifiche push';
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -72,7 +86,9 @@ async function init() {
     await checkHealth();
     _setStatus("Kirk pronto", "ok");
     setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 500);
-    subscribeNotifications();
+    // Re-subscribe silently only if permission already granted (no user gesture needed)
+    if (Notification.permission === 'granted') subscribeNotifications();
+    else _updateNotifBtn();
   } catch {
     _setStatus("Kirk non raggiungibile — controlla tunnel e server", "error");
   }
@@ -243,6 +259,10 @@ newSessionBtn.addEventListener("click", async () => {
     _setStatus(`Errore reset sessione: ${err.message}`, "error");
   }
 });
+
+// ── Notifiche ─────────────────────────────────────────────────────────────────
+
+notifBtn.addEventListener("click", () => subscribeNotifications());
 
 // ── Mute ──────────────────────────────────────────────────────────────────────
 
