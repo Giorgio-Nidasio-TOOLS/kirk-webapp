@@ -39,8 +39,7 @@ async function subscribeNotifications() {
     if (perm !== 'granted') { _updateNotifBtn(); return; }
     const reg = await navigator.serviceWorker.ready;
     const existing = await reg.pushManager.getSubscription();
-    if (existing) { _updateNotifBtn(); return; }
-    const sub = await reg.pushManager.subscribe({
+    const sub = existing || await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
