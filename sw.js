@@ -1,4 +1,4 @@
-const CACHE = "kirk-v10";
+const CACHE = "kirk-v11";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
@@ -19,6 +19,34 @@ self.addEventListener("activate", (e) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener('push', event => {
+  let title = 'Kirk Monitor';
+  let body = 'Notifica dal sistema';
+  if (event.data) {
+    try {
+      const d = event.data.json();
+      title = d.title || title;
+      body = d.body || body;
+    } catch (_) {
+      body = event.data.text();
+    }
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/kirk-webapp/icon-192.png',
+      badge: '/kirk-webapp/icon-192.png',
+      tag: 'kirk-monitor',
+      renotify: true
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow('/kirk-webapp/'));
 });
 
 // Network-first: sempre file freschi dalla rete, cache solo se offline

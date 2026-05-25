@@ -1,4 +1,4 @@
-import { getConfig, saveConfig, isConfigured } from "./config.js";
+import { getConfig, saveConfig, isConfigured, VAPID_PUBLIC_KEY } from "./config.js";
 import { sendCommand, getSession, newSession, checkHealth, sendNote } from "./api.js";
 import { startRecording, stopRecording, isRecording } from "./audio.js";
 import { speak, stopSpeaking, toggleMute } from "./tts.js";
@@ -22,6 +22,42 @@ const noteStatus    = document.getElementById("note-status");
 
 let _noteRecording = false;
 
+// ── Push notifications ────────────────────────────────────────────────────────
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    const { serverUrl, token } = getConfig();
+    await fetch(`${serverUrl}/push-subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Kirk-Token': token,
+        'ngrok-skip-browser-warning': '1'
+      },
+      body: JSON.stringify(sub.toJSON())
+    });
+  } catch (e) {
+    console.warn('Push subscription failed:', e);
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 async function init() {
@@ -36,6 +72,7 @@ async function init() {
     await checkHealth();
     _setStatus("Kirk pronto", "ok");
     setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 500);
+    subscribeNotifications();
   } catch {
     _setStatus("Kirk non raggiungibile — controlla tunnel e server", "error");
   }
