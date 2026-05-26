@@ -1,4 +1,8 @@
 import { getConfig, saveConfig, isConfigured, VAPID_PUBLIC_KEY } from "./config.js";
+import {
+  isBiometricAvailable, isBiometricRegistered,
+  registerBiometric, verifyBiometric,
+} from "./biometric.js";
 import { sendCommand, getSession, newSession, checkHealth, sendNote } from "./api.js";
 import { startRecording, stopRecording, isRecording } from "./audio.js";
 import { speak, stopSpeaking, toggleMute } from "./tts.js";
@@ -22,6 +26,78 @@ const noteSendBtn   = document.getElementById("note-send-btn");
 const noteStatus    = document.getElementById("note-status");
 
 let _noteRecording = false;
+
+// ── Biometric gate ────────────────────────────────────────────────────────────
+
+const _bioGate = document.getElementById("biometric-gate");
+const _bioMsg  = document.getElementById("bio-msg");
+const _bioBtn  = document.getElementById("bio-btn");
+
+/**
+ * Mostra il gate biometrico e risolve a true se l'utente si autentica,
+ * oppure a false se il biometrico non è disponibile (app prosegue normalmente).
+ * In caso di errore rimane bloccato con messaggio di retry.
+ */
+async function _runBiometricGate() {
+  const available = await isBiometricAvailable();
+  if (!available) {
+    _bioGate.classList.add("hidden");
+    return;
+  }
+
+  const registered = isBiometricRegistered();
+  _bioMsg.textContent = registered
+    ? "Usa la tua impronta digitale per accedere a Kirk"
+    : "Prima apertura: registra la tua impronta digitale per proteggere Kirk";
+  _bioBtn.textContent = registered ? "Usa impronta digitale  👆" : "Registra impronta  👆";
+
+  await new Promise((resolve) => {
+    const handler = async () => {
+      _bioBtn.disabled = true;
+      _bioMsg.textContent = "In attesa...";
+      _bioMsg.className = "";
+      try {
+        if (!isBiometricRegistered()) {
+          await registerBiometric();
+          _bioMsg.textContent = "✓ Impronta registrata";
+        } else {
+          await verifyBiometric();
+          _bioMsg.textContent = "✓ Accesso confermato";
+        }
+        _bioMsg.className = "ok";
+        setTimeout(() => {
+          _bioGate.classList.add("hidden");
+          resolve();
+        }, 400);
+      } catch (e) {
+        _bioBtn.disabled = false;
+        const cancelled = e.name === "NotAllowedError";
+        _bioMsg.className = "err";
+        _bioMsg.textContent = cancelled
+          ? "Verifica annullata — premi di nuovo per riprovare"
+          : "Errore verifica — premi di nuovo per riprovare";
+      }
+    };
+    _bioBtn.addEventListener("click", handler, { once: false });
+  });
+}
+
+// Re-verifica al ritorno in foreground dopo >5 minuti di background
+let _lastHidden = 0;
+const _BIO_TIMEOUT_MS = 5 * 60 * 1000;
+
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "hidden") {
+    _lastHidden = Date.now();
+  } else if (
+    document.visibilityState === "visible" &&
+    isConfigured() &&
+    isBiometricRegistered() &&
+    Date.now() - _lastHidden > _BIO_TIMEOUT_MS
+  ) {
+    await _runBiometricGate();
+  }
+});
 
 // ── Push notifications ────────────────────────────────────────────────────────
 
@@ -75,17 +151,21 @@ function _updateNotifBtn() {
 
 async function init() {
   if (!isConfigured()) {
+    _bioGate.classList.add("hidden");
     settingsPanel.classList.remove("hidden");
     _setStatus("Configura URL e token in ⚙️", "warning");
     return;
   }
+
+  // Gate biometrico — blocca l'app finché l'impronta non viene verificata
+  await _runBiometricGate();
+
   loadHistory();
   await _refreshSession();
   try {
     await checkHealth();
     _setStatus("Kirk pronto", "ok");
     setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 500);
-    // Re-subscribe silently only if permission already granted (no user gesture needed)
     if (Notification.permission === 'granted') subscribeNotifications();
     else _updateNotifBtn();
   } catch {

@@ -26,6 +26,16 @@
 
   <div id="status" class="warning">Configura URL e token in ⚙️</div>
 
+  <!-- Biometric gate: visibile di default, nascosto dopo verifica impronta -->
+  <div id="biometric-gate">
+    <div class="bio-card">
+      <div class="bio-icon">🔐</div>
+      <div class="bio-title">Comandante Kirk</div>
+      <div class="bio-msg" id="bio-msg">Verifica la tua identità per accedere</div>
+      <button id="bio-btn">Usa impronta digitale</button>
+    </div>
+  </div>
+
   <div id="settings-panel" class="panel hidden">
     <h3>Impostazioni Kirk</h3>
     <label>URL Server (tunnel ngrok)
