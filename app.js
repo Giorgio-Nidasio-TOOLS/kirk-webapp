@@ -3,12 +3,24 @@ import {
   isBiometricAvailable, isBiometricRegistered,
   registerBiometric, verifyBiometric,
 } from "./biometric.js";
-import { sendCommand, getSession, newSession, checkHealth, sendNote } from "./api.js";
-import { startRecording, stopRecording, isRecording } from "./audio.js";
+import { sendCommand, getSession, newSession, checkHealth } from "./api.js";
 import { speak, stopSpeaking, toggleMute } from "./tts.js";
 import { loadHistory, addMessage, clearHistory } from "./chat.js";
+import { inizializzaDeposito } from "./deposito.js";
 
-const micBtn        = document.getElementById("mic-btn");
+/**
+ * Riscritto il 29/08/2026.
+ *
+ * La chat resta, ma SOLO TESTUALE: il microfono dell'app e' uno solo ed e'
+ * dentro il Deposito. Prima ce n'erano due, identici, in punti diversi, con
+ * destini opposti — uno salvava, l'altro poteva bruciare il lavoro. Non era
+ * distrazione di chi lo usava: era l'interfaccia a offrire due volte la stessa
+ * cosa con due esiti diversi.
+ *
+ * Per la conversazione ricca (voce, foto, workspace) c'e' Remote Control, che
+ * la fa meglio di quanto potremmo farla qui.
+ */
+
 const textInput     = document.getElementById("text-input");
 const sendBtn       = document.getElementById("send-btn");
 const statusBar     = document.getElementById("status");
@@ -18,14 +30,6 @@ const settingsPanel = document.getElementById("settings-panel");
 const muteBtn       = document.getElementById("mute-btn");
 const newSessionBtn = document.getElementById("new-session-btn");
 const notifBtn      = document.getElementById("notif-btn");
-const noteBtn       = document.getElementById("note-btn");
-const notePanel     = document.getElementById("note-panel");
-const noteText      = document.getElementById("note-text");
-const noteMicBtn    = document.getElementById("note-mic-btn");
-const noteSendBtn   = document.getElementById("note-send-btn");
-const noteStatus    = document.getElementById("note-status");
-
-let _noteRecording = false;
 
 // ── Biometric gate ────────────────────────────────────────────────────────────
 
@@ -173,36 +177,6 @@ async function init() {
   }
 }
 
-// ── Mic button ────────────────────────────────────────────────────────────────
-
-micBtn.addEventListener("click", async () => {
-  // Guard: if a note recording is in progress, block main mic
-  if (_noteRecording) {
-    _setStatus("Ferma la registrazione nota prima di usare il microfono", "warning");
-    return;
-  }
-  if (isRecording()) {
-    micBtn.classList.remove("recording");
-    _setStatus("Elaborazione audio...", "loading");
-    _setBusy(true);
-    try {
-      const audioB64 = await stopRecording();
-      await _sendToKirk("audio", audioB64);
-    } catch (err) {
-      _setStatus(`Errore: ${err.message}`, "error");
-      _setBusy(false);
-    }
-  } else {
-    try {
-      await startRecording();
-      micBtn.classList.add("recording");
-      _setStatus("In ascolto... (premi di nuovo per fermare)", "listening");
-    } catch {
-      _setStatus("Microfono non disponibile — controlla i permessi", "error");
-    }
-  }
-});
-
 // ── Text send ─────────────────────────────────────────────────────────────────
 
 sendBtn.addEventListener("click", _sendText);
@@ -236,76 +210,6 @@ async function _sendToKirk(type, data) {
   }
 }
 
-// ── Note button ───────────────────────────────────────────────────────────────
-
-noteBtn.addEventListener("click", () => {
-  notePanel.classList.toggle("hidden");
-  settingsPanel.classList.add("hidden");
-  if (!notePanel.classList.contains("hidden")) {
-    noteText.focus();
-  }
-});
-
-noteSendBtn.addEventListener("click", async () => {
-  const text = noteText.value.trim();
-  if (!text) return;
-  _setNoteStatus("Salvataggio...", "");
-  noteSendBtn.disabled = true;
-  try {
-    await sendNote("transcript", text);
-    _setNoteStatus("✓ Nota salvata", "ok");
-    noteText.value = "";
-    setTimeout(() => {
-      _setNoteStatus("", "");
-      notePanel.classList.add("hidden");
-    }, 1500);
-  } catch (err) {
-    _setNoteStatus(`Errore: ${err.message}`, "err");
-  } finally {
-    noteSendBtn.disabled = false;
-  }
-});
-
-noteMicBtn.addEventListener("click", async () => {
-  if (_noteRecording) {
-    noteMicBtn.textContent = "🎤 Registra";
-    noteMicBtn.classList.remove("recording");
-    _noteRecording = false;
-    _setNoteStatus("Salvataggio audio...", "");
-    noteMicBtn.disabled = true;
-    try {
-      const audioB64 = await stopRecording();
-      await sendNote("audio", audioB64, "nota.webm");
-      _setNoteStatus("✓ Nota salvata", "ok");
-      setTimeout(() => {
-        _setNoteStatus("", "");
-        notePanel.classList.add("hidden");
-      }, 1500);
-    } catch (err) {
-      _setNoteStatus(`Errore: ${err.message}`, "err");
-    } finally {
-      noteMicBtn.disabled = false;
-      micBtn.disabled = false;
-    }
-  } else {
-    // Guard: if main mic is recording, block note mic
-    if (isRecording()) {
-      _setNoteStatus("Ferma il microfono principale prima di registrare una nota", "err");
-      return;
-    }
-    try {
-      await startRecording();
-      _noteRecording = true;
-      noteMicBtn.textContent = "⏹ Stop";
-      noteMicBtn.classList.add("recording");
-      _setNoteStatus("Registrazione in corso...", "");
-      micBtn.disabled = true;
-    } catch {
-      _setNoteStatus("Microfono non disponibile", "err");
-    }
-  }
-});
-
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 settingsBtn.addEventListener("click", () => {
@@ -313,7 +217,7 @@ settingsBtn.addEventListener("click", () => {
   document.getElementById("server-url").value = c.serverUrl || "";
   document.getElementById("api-token").value  = c.token || "";
   settingsPanel.classList.toggle("hidden");
-  notePanel.classList.add("hidden");
+  document.getElementById("dep-panel")?.classList.add("hidden");
 });
 
 document.getElementById("save-settings").addEventListener("click", () => {
@@ -373,16 +277,15 @@ function _setStatus(text, type) {
   statusBar.className   = type || "";
 }
 
-function _setNoteStatus(text, cls) {
-  noteStatus.textContent = text;
-  noteStatus.className   = cls || "";
-}
-
 function _setBusy(busy) {
-  micBtn.disabled  = busy;
   sendBtn.disabled = busy;
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+
+// Il Deposito si inizializza SEMPRE, anche prima del gate biometrico e anche se
+// Kirk non e' raggiungibile: la coda deve poter accogliere depositi offline.
+// In fiera e' proprio la condizione normale.
+inizializzaDeposito();
 
 init();

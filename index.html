@@ -47,20 +47,35 @@
     <button id="save-settings">Salva e connetti</button>
   </div>
 
-  <div id="note-panel" class="panel hidden">
-    <h3>📝 Nuova Nota Vocale</h3>
-    <textarea id="note-text" placeholder="Scrivi la nota oppure usa il microfono..." rows="3"></textarea>
-    <div class="note-actions">
-      <button id="note-mic-btn">🎤 Registra</button>
-      <button id="note-send-btn" class="note-save">Salva Nota</button>
+  <!-- DEPOSITO: foto + voce + testo in un pacchetto solo.
+       Contiene l'UNICO microfono dell'app: prima ce n'erano due, identici,
+       in punti diversi, con destini opposti. -->
+  <div id="dep-panel" class="panel hidden">
+    <div class="dep-head">
+      <h3>📥 Deposita</h3>
+      <button id="dep-close" title="Chiudi">×</button>
     </div>
-    <div id="note-status"></div>
+    <p class="dep-hint">Foto, voce e appunti insieme. Parte da sola appena c'è rete.</p>
+
+    <div id="dep-galleria" class="dep-galleria"></div>
+    <input id="dep-foto-input" type="file" accept="image/*" capture="environment" multiple hidden>
+
+    <div class="dep-actions">
+      <button id="dep-foto-btn">📷 Foto</button>
+      <button id="dep-mic-btn">🎤 Registra</button>
+    </div>
+    <div id="dep-audio-info" class="dep-audio-info"></div>
+
+    <textarea id="dep-testo" rows="3"
+      placeholder="Appunti, link LinkedIn, mail dettata... (facoltativo)"></textarea>
+
+    <button id="dep-invia-btn" class="dep-invia">Deposita</button>
+    <div id="dep-stato"></div>
   </div>
 
   <footer>
-    <textarea id="text-input" placeholder="Scrivi un comando..." rows="1"></textarea>
-    <button id="note-btn" title="Nota vocale">📝</button>
-    <button id="mic-btn" title="Registra voce">🎤</button>
+    <textarea id="text-input" placeholder="Scrivi a Kirk..." rows="1"></textarea>
+    <button id="dep-btn" title="Deposita: foto, voce, appunti">📥<span id="dep-contatore" class="hidden"></span></button>
     <button id="send-btn" title="Invia">▶</button>
   </footer>
 

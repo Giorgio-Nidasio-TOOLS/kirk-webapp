@@ -175,11 +175,80 @@ footer button:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .hidden { display: none !important; }
 
-/* ── Note button ──────────────────────────────────────────────────────────── */
-#note-btn { background: #2d6a4f; }
+/* ── Deposito: il pulsante ────────────────────────────────────────────────── */
+#dep-btn {
+  background: #2d6a4f;
+  position: relative;
+}
+/* Se c'e' roba in coda si deve VEDERE: un deposito non ancora arrivato al PC
+   e' l'unica cosa che puo' far perdere fiducia nel canale. */
+#dep-btn.ha-coda { background: #b06a10; }
 
-/* ── Note panel ───────────────────────────────────────────────────────────── */
-#note-panel textarea {
+#dep-contatore {
+  position: absolute;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+  background: #b06a10;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 8px;
+  white-space: nowrap;
+  border: 1px solid var(--bg);
+}
+
+/* ── Deposito: il pannello ────────────────────────────────────────────────── */
+.dep-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.dep-head h3 { margin-bottom: 0; }
+#dep-close {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 1.4rem; line-height: 1; cursor: pointer;
+  width: auto; padding: 0 4px; margin: 0;
+}
+.dep-hint {
+  font-size: 0.75rem; color: var(--text-dim);
+  margin: 0 0 10px;
+}
+
+.dep-galleria {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 8px;
+}
+.dep-thumb { position: relative; width: 62px; height: 62px; }
+.dep-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.dep-thumb-x {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; padding: 0; margin: 0;
+  border-radius: 50%; border: none;
+  background: var(--err, #a0293d); color: #fff;
+  font-size: 0.85rem; line-height: 1; cursor: pointer;
+}
+
+.dep-actions { display: flex; gap: 8px; margin-bottom: 6px; }
+.dep-actions button {
+  flex: 1; margin-top: 0;
+  background: var(--accent);
+  color: var(--text);
+  font-weight: 500;
+}
+.dep-actions button.recording { animation: pulse 1s infinite; }
+
+.dep-audio-info {
+  font-size: 0.75rem; color: var(--text-dim);
+  min-height: 1.1em; margin-bottom: 6px;
+}
+
+#dep-panel textarea {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -190,41 +259,26 @@ footer button:disabled { opacity: 0.35; cursor: not-allowed; }
   outline: none;
   resize: vertical;
   font-family: inherit;
-  min-height: 80px;
+  min-height: 64px;
   margin-bottom: 8px;
 }
-#note-panel textarea:focus { border-color: var(--highlight); }
+#dep-panel textarea:focus { border-color: var(--highlight); }
 
-.note-actions {
-  display: flex;
-  gap: 8px;
-}
-.note-actions button {
-  flex: 1;
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  padding: 10px;
-  color: var(--text);
-  font-size: 0.9rem;
-  cursor: pointer;
-  font-family: inherit;
-}
-.note-actions button.note-save {
+#dep-invia-btn {
   background: #2d6a4f;
   font-weight: 600;
+  padding: 12px;
 }
-.note-actions button.recording { animation: pulse 1s infinite; }
 
-#note-status {
+#dep-stato {
   font-size: 0.8rem;
   color: var(--text-dim);
   margin-top: 6px;
   text-align: center;
   min-height: 1.2em;
 }
-#note-status.ok  { color: var(--ok); }
-#note-status.err { color: var(--err); }
+#dep-stato.ok  { color: var(--ok); }
+#dep-stato.err { color: var(--err); }
 
 /* ── Biometric gate ───────────────────────────────────────────────────────── */
 #biometric-gate {

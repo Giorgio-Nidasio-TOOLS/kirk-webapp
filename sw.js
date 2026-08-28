@@ -1,9 +1,12 @@
-const CACHE = "kirk-v14";
+// v15 (29/08/2026): Deposito — pulsante unico, foto + voce + testo, coda offline.
+// ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
+//    senza bump il telefono continua a servire la versione vecchia dalla cache.
+const CACHE = "kirk-v15";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
   "./tts.js", "./chat.js", "./config.js",
-  "./biometric.js",
+  "./biometric.js", "./deposito.js", "./coda.js",
   "./manifest.json", "./icon-192.png",
   "./user-avatar.jpg", "./kirk-avatar.jpg"
 ];
