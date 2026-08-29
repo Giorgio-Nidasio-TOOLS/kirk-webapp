@@ -5,24 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Comandante Kirk a Enterprise</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
+  <!--
+    Kirk dal 30/08/2026: SOLO il Deposito.
+    La chat e' stata dismessa (il canale sincrono lo fa Remote Control).
+    Superato il saluto (gate biometrico + voce), il Deposito e' gia' qui:
+    niente pulsanti da cercare, niente pannelli da aprire.
+  -->
   <header>
+    <img id="logo" src="./kirk-avatar.jpg" alt="" onerror="this.style.display='none'">
     <span id="app-name">Comandante Kirk</span>
-    <span id="session-info">—</span>
+    <span id="dep-contatore" class="hidden" title="Depositi non ancora arrivati al PC"></span>
     <div class="header-btns">
       <button id="notif-btn" title="Abilita notifiche push" style="display:none">🔔</button>
-      <button id="mute-btn" title="Mute TTS">🔊</button>
-      <button id="new-session-btn" title="Nuova sessione">↺</button>
+      <button id="mute-btn" title="Audio del saluto">🔊</button>
       <button id="settings-btn" title="Impostazioni">⚙️</button>
     </div>
   </header>
 
-  <div id="chat"></div>
+  <main id="main">
+    <!-- DEPOSITO: foto + voce + testo in un pacchetto solo.
+         Contiene l'UNICO microfono dell'app: prima ce n'erano due, identici,
+         in punti diversi, con destini opposti. -->
+    <section id="dep-panel" class="dep">
+      <h2>📥 Deposita</h2>
+      <p class="dep-hint">Foto, voce e appunti insieme. Parte da sola appena c'è rete.</p>
+
+      <div id="dep-galleria" class="dep-galleria"></div>
+      <input id="dep-foto-input" type="file" accept="image/*" capture="environment" multiple hidden>
+
+      <div class="dep-actions">
+        <button id="dep-foto-btn">📷 Foto</button>
+        <button id="dep-mic-btn">🎤 Registra</button>
+      </div>
+      <div id="dep-audio-info" class="dep-audio-info"></div>
+
+      <textarea id="dep-testo" rows="3"
+        placeholder="Appunti, richieste, link LinkedIn, mail dettata... (facoltativo)"></textarea>
+
+      <button id="dep-invia-btn" class="dep-invia">Deposita</button>
+      <div id="dep-stato"></div>
+    </section>
+
+    <!-- REGISTRO: gli ultimi depositi, con l'esito DERIVATO dalla coda
+         (in coda = non ancora arrivato al PC; consegnato = il server ha risposto 200). -->
+    <section id="dep-registro" class="registro">
+      <h3>Ultimi depositi</h3>
+      <ul id="dep-lista"></ul>
+      <p id="dep-lista-vuota" class="registro-vuoto">Nessun deposito su questo telefono.</p>
+    </section>
+  </main>
 
   <div id="status" class="warning">Configura URL e token in ⚙️</div>
 
@@ -39,45 +77,14 @@
   <div id="settings-panel" class="panel hidden">
     <h3>Impostazioni Kirk</h3>
     <label>URL Server (tunnel ngrok)
-      <input id="server-url" type="url" placeholder="https://kirk-enterprise.cfargotunnel.com">
+      <input id="server-url" type="url" placeholder="https://....ngrok-free.dev">
     </label>
     <label>Token Segreto
-      <input id="api-token" type="password" placeholder="token generato da setup.ps1">
+      <input id="api-token" type="password" placeholder="token in config.json del backend">
     </label>
     <button id="save-settings">Salva e connetti</button>
+    <button id="close-settings" class="secondary">Chiudi</button>
   </div>
-
-  <!-- DEPOSITO: foto + voce + testo in un pacchetto solo.
-       Contiene l'UNICO microfono dell'app: prima ce n'erano due, identici,
-       in punti diversi, con destini opposti. -->
-  <div id="dep-panel" class="panel hidden">
-    <div class="dep-head">
-      <h3>📥 Deposita</h3>
-      <button id="dep-close" title="Chiudi">×</button>
-    </div>
-    <p class="dep-hint">Foto, voce e appunti insieme. Parte da sola appena c'è rete.</p>
-
-    <div id="dep-galleria" class="dep-galleria"></div>
-    <input id="dep-foto-input" type="file" accept="image/*" capture="environment" multiple hidden>
-
-    <div class="dep-actions">
-      <button id="dep-foto-btn">📷 Foto</button>
-      <button id="dep-mic-btn">🎤 Registra</button>
-    </div>
-    <div id="dep-audio-info" class="dep-audio-info"></div>
-
-    <textarea id="dep-testo" rows="3"
-      placeholder="Appunti, link LinkedIn, mail dettata... (facoltativo)"></textarea>
-
-    <button id="dep-invia-btn" class="dep-invia">Deposita</button>
-    <div id="dep-stato"></div>
-  </div>
-
-  <footer>
-    <textarea id="text-input" placeholder="Scrivi a Kirk..." rows="1"></textarea>
-    <button id="dep-btn" title="Deposita: foto, voce, appunti">📥<span id="dep-contatore" class="hidden"></span></button>
-    <button id="send-btn" title="Invia">▶</button>
-  </footer>
 
   <script type="module" src="app.js"></script>
   <script>

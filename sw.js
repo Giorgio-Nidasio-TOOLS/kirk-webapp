@@ -1,14 +1,16 @@
-// v15 (29/08/2026): Deposito — pulsante unico, foto + voce + testo, coda offline.
+// v17 (30/08/2026): Kirk e' SOLO il Deposito — chat dismessa, registro dei
+//   depositi, saluto vocale con audio ricordato, icona Enterprise.
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
-const CACHE = "kirk-v16";
+//    E se si aggiunge un file nuovo, va messo anche in ASSETS.
+const CACHE = "kirk-v17";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
-  "./tts.js", "./chat.js", "./config.js",
+  "./tts.js", "./config.js",
   "./biometric.js", "./deposito.js", "./coda.js",
   "./manifest.json", "./icon-192.png",
-  "./user-avatar.jpg", "./kirk-avatar.jpg"
+  "./kirk-avatar.jpg"
 ];
 
 self.addEventListener("install", (e) => {

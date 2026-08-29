@@ -11,6 +11,8 @@
   --ok: #4ade80;
   --warn: #fbbf24;
   --err: #e94560;
+  --verde: #2d6a4f;
+  --arancio: #b06a10;
 }
 
 body {
@@ -23,132 +25,69 @@ body {
   overflow: hidden;
 }
 
+/* ── Header ─────────────────────────────────────────────────────────────── */
 header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 14px;
+  padding-top: max(10px, env(safe-area-inset-top));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: 8px;
   flex-shrink: 0;
 }
-#app-name { font-weight: 700; font-size: 1.1rem; color: var(--highlight); }
-#session-info { flex: 1; font-size: 0.75rem; color: var(--text-dim); }
-.header-btns { display: flex; gap: 4px; }
+#logo { height: 26px; width: auto; border-radius: 4px; flex-shrink: 0; }
+#app-name { font-weight: 700; font-size: 1.05rem; color: var(--highlight); flex: 1; white-space: nowrap; }
+.header-btns { display: flex; gap: 2px; }
 .header-btns button {
-  background: none; border: none; font-size: 1.1rem;
-  cursor: pointer; padding: 4px; color: var(--text);
+  background: none; border: none; font-size: 1.15rem;
+  cursor: pointer; padding: 6px; color: var(--text);
 }
 
-#chat {
+/* Il contatore della coda vive nell'header: si vede sempre, in ogni schermata.
+   Un deposito non ancora arrivato al PC e' l'unica cosa che puo' far perdere
+   fiducia nel canale. */
+#dep-contatore {
+  background: var(--arancio);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ── Corpo scorrevole ───────────────────────────────────────────────────── */
+#main {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.message { display: flex; gap: 8px; align-items: flex-end; }
-.message.user { flex-direction: row-reverse; }
-
-.avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
-}
-.avatar.photo {
-  object-fit: cover;
-  background: none;
-}
-.message.user .avatar { background: var(--highlight); }
-
-.bubble {
-  max-width: 78%;
-  background: var(--surface);
-  border-radius: 16px 16px 16px 4px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-}
-.message.user .bubble { border-radius: 16px 16px 4px 16px; background: var(--accent); }
-.bubble p { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
-.bubble p strong { color: #e2b96f; }
-.bubble p em { color: #a0c4ff; font-style: italic; }
-.bubble p code { background: #0d1f3c; color: #7dd3a8; padding: 1px 5px; border-radius: 4px; font-size: 0.82rem; font-family: monospace; }
-.bubble p .md-h { display: block; font-size: 1rem; margin-bottom: 4px; color: var(--highlight); }
-.bubble time { font-size: 0.7rem; color: var(--text-dim); display: block; margin-top: 4px; }
-
-.message.new { animation: fadeIn 0.25s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
-
+/* ── Barra di stato ─────────────────────────────────────────────────────── */
 #status {
-  padding: 5px 16px;
+  padding: 6px 16px;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
   font-size: 0.8rem;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  min-height: 26px;
+  min-height: 28px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
 #status.ok       { color: var(--ok); }
 #status.error    { color: var(--err); }
 #status.loading  { color: var(--warn); }
-#status.listening{ color: #60a5fa; }
 #status.warning  { color: #f97316; }
 
-footer {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 10px 12px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-#text-input {
-  flex: 1;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 8px 16px;
-  color: var(--text);
-  font-size: 0.9rem;
-  outline: none;
-  resize: none;
-  overflow-y: auto;
-  height: 40px;
-  font-family: inherit;
-  line-height: 1.5rem;
-  transition: height 0.15s ease, border-radius 0.15s ease;
-}
-#text-input:focus {
-  border-color: var(--highlight);
-  height: 96px;
-  border-radius: 12px;
-}
-
-footer button {
-  background: var(--accent);
-  border: none; border-radius: 50%;
-  width: 44px; height: 44px;
-  font-size: 1.1rem; cursor: pointer; color: var(--text);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-#mic-btn { background: var(--highlight); }
-#mic-btn.recording { animation: pulse 1s infinite; }
-@keyframes pulse {
-  0%, 100% { background: var(--highlight); }
-  50%       { background: #a0293d; }
-}
-footer button:disabled { opacity: 0.35; cursor: not-allowed; }
-
+/* ── Pannello impostazioni (unico pannello rimasto) ─────────────────────── */
 .panel {
   position: fixed;
-  bottom: 72px; right: 12px;
+  top: 56px; right: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -173,60 +112,36 @@ footer button:disabled { opacity: 0.35; cursor: not-allowed; }
   color: white; font-size: 0.9rem; cursor: pointer;
   width: 100%; margin-top: 4px; font-weight: 600;
 }
+.panel button.secondary { background: var(--accent); color: var(--text); font-weight: 500; margin-top: 8px; }
 .hidden { display: none !important; }
 
-/* ── Deposito: il pulsante ────────────────────────────────────────────────── */
-#dep-btn {
-  background: #2d6a4f;
-  position: relative;
+/* ── Deposito: la schermata ─────────────────────────────────────────────── */
+.dep {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
 }
-/* Se c'e' roba in coda si deve VEDERE: un deposito non ancora arrivato al PC
-   e' l'unica cosa che puo' far perdere fiducia nel canale. */
-#dep-btn.ha-coda { background: #b06a10; }
-
-#dep-contatore {
-  position: absolute;
-  bottom: -6px; left: 50%;
-  transform: translateX(-50%);
-  background: #b06a10;
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 3px 6px;
-  border-radius: 8px;
-  white-space: nowrap;
-  border: 1px solid var(--bg);
+.dep h2 { font-size: 1.15rem; margin-bottom: 2px; }
+.dep-hint {
+  font-size: 0.78rem; color: var(--text-dim);
+  margin: 0 0 12px;
 }
-
-/* ── Deposito: il pannello ────────────────────────────────────────────────── */
 
 /* L'input file deve restare invisibile: lo apre il pulsante 📷 Foto.
-   L'attributo HTML `hidden` da solo non basta, perche' la regola generica
-   `.panel input { display: block }` piu' sopra lo sovrascrive — e il campo
-   "Scegli file / Nessun file selezionato" ricompare in mezzo al pannello. */
+   L'attributo HTML `hidden` da solo non basta se una regola generica come
+   `.panel input { display: block }` lo sovrascrive — e' gia' successo (29/08):
+   il campo "Scegli file / Nessun file selezionato" ricompariva in mezzo al
+   pannello. La regola esplicita resta come sentinella anche ora che il
+   Deposito non e' piu' un .panel. */
 #dep-panel input[type="file"] { display: none !important; }
 
-.dep-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 4px;
-}
-.dep-head h3 { margin-bottom: 0; }
-#dep-close {
-  background: none; border: none; color: var(--text-dim);
-  font-size: 1.4rem; line-height: 1; cursor: pointer;
-  width: auto; padding: 0 4px; margin: 0;
-}
-.dep-hint {
-  font-size: 0.75rem; color: var(--text-dim);
-  margin: 0 0 10px;
-}
-
 .dep-galleria {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-bottom: 8px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 10px;
 }
-.dep-thumb { position: relative; width: 62px; height: 62px; }
+.dep-galleria:empty { display: none; }
+.dep-thumb { position: relative; width: 68px; height: 68px; }
 .dep-thumb img {
   width: 100%; height: 100%;
   object-fit: cover;
@@ -235,59 +150,97 @@ footer button:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .dep-thumb-x {
   position: absolute; top: -6px; right: -6px;
-  width: 20px; height: 20px; padding: 0; margin: 0;
+  width: 22px; height: 22px; padding: 0; margin: 0;
   border-radius: 50%; border: none;
-  background: var(--err, #a0293d); color: #fff;
-  font-size: 0.85rem; line-height: 1; cursor: pointer;
+  background: var(--err); color: #fff;
+  font-size: 0.9rem; line-height: 1; cursor: pointer;
 }
 
-.dep-actions { display: flex; gap: 8px; margin-bottom: 6px; }
+.dep-actions { display: flex; gap: 10px; margin-bottom: 6px; }
 .dep-actions button {
-  flex: 1; margin-top: 0;
+  flex: 1;
   background: var(--accent);
   color: var(--text);
-  font-weight: 500;
+  border: none; border-radius: 10px;
+  padding: 14px 8px;
+  font-size: 1rem; font-weight: 500;
+  cursor: pointer;
 }
 .dep-actions button.recording { animation: pulse 1s infinite; }
+@keyframes pulse {
+  0%, 100% { background: var(--highlight); }
+  50%       { background: #a0293d; }
+}
 
 .dep-audio-info {
-  font-size: 0.75rem; color: var(--text-dim);
-  min-height: 1.1em; margin-bottom: 6px;
+  font-size: 0.78rem; color: var(--text-dim);
+  min-height: 1.1em; margin-bottom: 8px;
 }
 
 #dep-panel textarea {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 10px 12px;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   outline: none;
   resize: vertical;
   font-family: inherit;
-  min-height: 64px;
-  margin-bottom: 8px;
+  min-height: 72px;
+  margin-bottom: 10px;
 }
 #dep-panel textarea:focus { border-color: var(--highlight); }
 
-#dep-invia-btn {
-  background: #2d6a4f;
-  font-weight: 600;
-  padding: 12px;
+.dep-invia {
+  width: 100%;
+  background: var(--verde);
+  color: #fff;
+  border: none; border-radius: 10px;
+  padding: 14px;
+  font-size: 1.05rem; font-weight: 600;
+  cursor: pointer;
 }
+.dep-invia:active { filter: brightness(1.15); }
 
 #dep-stato {
   font-size: 0.8rem;
   color: var(--text-dim);
-  margin-top: 6px;
+  margin-top: 8px;
   text-align: center;
   min-height: 1.2em;
 }
 #dep-stato.ok  { color: var(--ok); }
 #dep-stato.err { color: var(--err); }
 
-/* ── Biometric gate ───────────────────────────────────────────────────────── */
+/* ── Registro degli ultimi depositi ─────────────────────────────────────── */
+.registro { padding: 0 4px; }
+.registro h3 {
+  font-size: 0.8rem; font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.registro ul { list-style: none; }
+.registro li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.registro li:last-child { border-bottom: none; }
+.reg-ora  { color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.reg-cosa { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reg-esito { white-space: nowrap; font-size: 0.78rem; }
+.registro li.consegnato .reg-esito { color: var(--ok); }
+.registro li.in-coda   .reg-esito { color: var(--warn); font-weight: 600; }
+.registro-vuoto { font-size: 0.8rem; color: var(--text-dim); padding: 6px; }
+
+/* ── Biometric gate ─────────────────────────────────────────────────────── */
 #biometric-gate {
   position: fixed; inset: 0;
   background: var(--bg);

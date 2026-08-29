@@ -3,32 +3,29 @@ import {
   isBiometricAvailable, isBiometricRegistered,
   registerBiometric, verifyBiometric,
 } from "./biometric.js";
-import { sendCommand, getSession, newSession, checkHealth } from "./api.js";
-import { speak, stopSpeaking, toggleMute } from "./tts.js";
-import { loadHistory, addMessage, clearHistory } from "./chat.js";
+import { checkHealth } from "./api.js";
+import { speak, toggleMute, isMuted } from "./tts.js";
 import { inizializzaDeposito } from "./deposito.js";
 
 /**
- * Riscritto il 29/08/2026.
+ * Riscritto il 30/08/2026: Kirk e' SOLO il Deposito.
  *
- * La chat resta, ma SOLO TESTUALE: il microfono dell'app e' uno solo ed e'
- * dentro il Deposito. Prima ce n'erano due, identici, in punti diversi, con
- * destini opposti — uno salvava, l'altro poteva bruciare il lavoro. Non era
- * distrazione di chi lo usava: era l'interfaccia a offrire due volte la stessa
- * cosa con due esiti diversi.
+ * La chat e' stata dismessa dopo i test del 29/08: il canale sincrono (voce,
+ * foto, workspace) lo fa Remote Control meglio di quanto potessimo farlo qui.
+ * Kirk resta il canale ASINCRONO — la cassetta delle lettere che non perde
+ * niente — e non ha piu' bisogno di una home: superato il saluto, il Deposito
+ * e' gia' davanti.
  *
- * Per la conversazione ricca (voce, foto, workspace) c'e' Remote Control, che
- * la fa meglio di quanto potremmo farla qui.
+ * Restano: il gate biometrico (protegge il token), le Impostazioni (URL e
+ * token), il campanello delle notifiche push (lo usano il Tool 04 e il digest
+ * e-mail per avvisare il telefono) e il saluto vocale, con l'audio spegnibile
+ * e la scelta ricordata fra un avvio e l'altro.
  */
 
-const textInput     = document.getElementById("text-input");
-const sendBtn       = document.getElementById("send-btn");
 const statusBar     = document.getElementById("status");
-const sessionInfo   = document.getElementById("session-info");
 const settingsBtn   = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const muteBtn       = document.getElementById("mute-btn");
-const newSessionBtn = document.getElementById("new-session-btn");
 const notifBtn      = document.getElementById("notif-btn");
 
 // ── Biometric gate ────────────────────────────────────────────────────────────
@@ -38,8 +35,8 @@ const _bioMsg  = document.getElementById("bio-msg");
 const _bioBtn  = document.getElementById("bio-btn");
 
 /**
- * Mostra il gate biometrico e risolve a true se l'utente si autentica,
- * oppure a false se il biometrico non è disponibile (app prosegue normalmente).
+ * Mostra il gate biometrico e risolve quando l'utente si autentica,
+ * oppure subito se il biometrico non è disponibile (l'app prosegue normalmente).
  * In caso di errore rimane bloccato con messaggio di retry.
  */
 async function _runBiometricGate() {
@@ -54,12 +51,13 @@ async function _runBiometricGate() {
     ? "Usa la tua impronta digitale per accedere a Kirk"
     : "Prima apertura: registra la tua impronta digitale per proteggere Kirk";
   _bioBtn.textContent = registered ? "Usa impronta digitale  👆" : "Registra impronta  👆";
+  _bioGate.classList.remove("hidden");
 
   await new Promise((resolve) => {
     const handler = async () => {
       _bioBtn.disabled = true;
       _bioMsg.textContent = "In attesa...";
-      _bioMsg.className = "";
+      _bioMsg.className = "bio-msg";
       try {
         if (!isBiometricRegistered()) {
           await registerBiometric();
@@ -68,21 +66,22 @@ async function _runBiometricGate() {
           await verifyBiometric();
           _bioMsg.textContent = "✓ Accesso confermato";
         }
-        _bioMsg.className = "ok";
+        _bioMsg.className = "bio-msg ok";
         setTimeout(() => {
           _bioGate.classList.add("hidden");
+          _bioBtn.removeEventListener("click", handler);
           resolve();
         }, 400);
       } catch (e) {
         _bioBtn.disabled = false;
         const cancelled = e.name === "NotAllowedError";
-        _bioMsg.className = "err";
+        _bioMsg.className = "bio-msg err";
         _bioMsg.textContent = cancelled
           ? "Verifica annullata — premi di nuovo per riprovare"
           : "Errore verifica — premi di nuovo per riprovare";
       }
     };
-    _bioBtn.addEventListener("click", handler, { once: false });
+    _bioBtn.addEventListener("click", handler);
   });
 }
 
@@ -164,51 +163,31 @@ async function init() {
   // Gate biometrico — blocca l'app finché l'impronta non viene verificata
   await _runBiometricGate();
 
-  loadHistory();
-  await _refreshSession();
+  // Il saluto: la voce parte appena si e' dentro, non aspetta il server.
+  // Se il PC e' spento (in fiera e' normale) il Deposito funziona lo stesso.
+  setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 300);
+
+  await _verificaCollegamento();
+}
+
+/** Stato del collegamento col PC. Non e' bloccante: la coda regge comunque. */
+async function _verificaCollegamento() {
+  if (!navigator.onLine) {
+    _setStatus("Offline — i depositi restano in coda e partono da soli", "warning");
+    return;
+  }
   try {
     await checkHealth();
-    _setStatus("Kirk pronto", "ok");
-    setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 500);
+    _setStatus("Kirk pronto — collegato al PC", "ok");
     if (Notification.permission === 'granted') subscribeNotifications();
     else _updateNotifBtn();
   } catch {
-    _setStatus("Kirk non raggiungibile — controlla tunnel e server", "error");
+    _setStatus("PC non raggiungibile — i depositi restano in coda", "warning");
   }
 }
 
-// ── Text send ─────────────────────────────────────────────────────────────────
-
-sendBtn.addEventListener("click", _sendText);
-textInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); _sendText(); }
-});
-
-async function _sendText() {
-  const text = textInput.value.trim();
-  if (!text) return;
-  textInput.value = "";
-  _setStatus("Elaborazione...", "loading");
-  _setBusy(true);
-  await _sendToKirk("text", text);
-}
-
-// ── Core send ─────────────────────────────────────────────────────────────────
-
-async function _sendToKirk(type, data) {
-  try {
-    const result = await sendCommand(type, data);
-    addMessage("user", result.transcript);
-    addMessage("assistant", result.response);
-    speak(result.response);
-    _setStatus(`Kirk — ${result.message_count} messaggi`, "ok");
-    await _refreshSession();
-  } catch (err) {
-    _setStatus(`Errore: ${err.message}`, "error");
-  } finally {
-    _setBusy(false);
-  }
-}
+window.addEventListener("online",  () => { if (isConfigured()) _verificaCollegamento(); });
+window.addEventListener("offline", () => { if (isConfigured()) _verificaCollegamento(); });
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
@@ -217,7 +196,10 @@ settingsBtn.addEventListener("click", () => {
   document.getElementById("server-url").value = c.serverUrl || "";
   document.getElementById("api-token").value  = c.token || "";
   settingsPanel.classList.toggle("hidden");
-  document.getElementById("dep-panel")?.classList.add("hidden");
+});
+
+document.getElementById("close-settings").addEventListener("click", () => {
+  settingsPanel.classList.add("hidden");
 });
 
 document.getElementById("save-settings").addEventListener("click", () => {
@@ -229,56 +211,26 @@ document.getElementById("save-settings").addEventListener("click", () => {
   init();
 });
 
-// ── Session reset ─────────────────────────────────────────────────────────────
-
-newSessionBtn.addEventListener("click", async () => {
-  if (!confirm("Iniziare una nuova sessione? La cronologia verrà cancellata.")) return;
-  try {
-    await newSession();
-    clearHistory();
-    sessionInfo.textContent = "Nuova sessione";
-    _setStatus("Nuova sessione avviata", "ok");
-  } catch (err) {
-    _setStatus(`Errore reset sessione: ${err.message}`, "error");
-  }
-});
-
 // ── Notifiche ─────────────────────────────────────────────────────────────────
 
 notifBtn.addEventListener("click", () => subscribeNotifications());
 
-// ── Mute ──────────────────────────────────────────────────────────────────────
+// ── Audio del saluto (scelta ricordata fra un avvio e l'altro) ───────────────
 
-muteBtn.addEventListener("click", () => {
-  const muted = toggleMute();
+function _disegnaMute() {
+  const muted = isMuted();
   muteBtn.textContent = muted ? "🔇" : "🔊";
-});
+  muteBtn.title = muted ? "Saluto vocale spento — tocca per riaccenderlo"
+                        : "Saluto vocale acceso — tocca per spegnerlo";
+}
+muteBtn.addEventListener("click", () => { toggleMute(); _disegnaMute(); });
+_disegnaMute();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function _refreshSession() {
-  try {
-    const s = await getSession();
-    if (s.active && s.created_at) {
-      const since = new Date(s.created_at).toLocaleTimeString("it-IT", {
-        hour: "2-digit", minute: "2-digit",
-      });
-      sessionInfo.textContent = `Sessione: ${since} · ${s.message_count} msg`;
-    } else {
-      sessionInfo.textContent = "Nessuna sessione";
-    }
-  } catch {
-    sessionInfo.textContent = "—";
-  }
-}
 
 function _setStatus(text, type) {
   statusBar.textContent = text;
   statusBar.className   = type || "";
-}
-
-function _setBusy(busy) {
-  sendBtn.disabled = busy;
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────

@@ -1,5 +1,13 @@
 import { getConfig } from "./config.js";
 
+/**
+ * Dal 30/08/2026 la PWA parla col backend per due sole cose:
+ *  - /deposito  — il pacchetto (foto + voce + testo), via coda.js
+ *  - /health    — lo stato del collegamento col PC
+ * (/push-subscribe e' chiamato direttamente da app.js).
+ * /command, /session e /note non esistono piu' lato PWA: la chat e' dismessa.
+ */
+
 async function request(path, options = {}) {
   const { serverUrl, token } = getConfig();
   const url = `${serverUrl}${path}`;
@@ -17,20 +25,6 @@ async function request(path, options = {}) {
     throw new Error(err.detail || `HTTP ${resp.status}`);
   }
   return resp.json();
-}
-
-export function sendCommand(type, data) {
-  return request("/command", {
-    method: "POST",
-    body: JSON.stringify({ type, data }),
-  });
-}
-
-export function sendNote(type, data, filename = null) {
-  return request("/note", {
-    method: "POST",
-    body: JSON.stringify({ type, data, filename }),
-  });
 }
 
 /**
@@ -65,14 +59,6 @@ export async function inviaDeposito(pacchetto) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-export function getSession() {
-  return request("/session");
-}
-
-export function newSession() {
-  return request("/session/new", { method: "POST" });
 }
 
 export function checkHealth() {
