@@ -200,6 +200,13 @@ footer button:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 
 /* ── Deposito: il pannello ────────────────────────────────────────────────── */
+
+/* L'input file deve restare invisibile: lo apre il pulsante 📷 Foto.
+   L'attributo HTML `hidden` da solo non basta, perche' la regola generica
+   `.panel input { display: block }` piu' sopra lo sovrascrive — e il campo
+   "Scegli file / Nessun file selezionato" ricompare in mezzo al pannello. */
+#dep-panel input[type="file"] { display: none !important; }
+
 .dep-head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 4px;
