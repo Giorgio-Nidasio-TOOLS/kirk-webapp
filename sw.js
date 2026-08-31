@@ -1,3 +1,6 @@
+// v19 (01/09/2026): allegati con due selettori puliti — 🖼 Immagini (selettore
+//   foto) e 📎 Documenti (selettore file con accept esplicito): via lo
+//   "Scegli un'azione" ambiguo di Samsung. HEIC non decodificabile -> allegato.
 // v18 (01/09/2026): 📎 Allega file — galleria, download, OneDrive via selettore
 //   di sistema; max 50 MB a file, 5 per deposito; le immagini diventano foto.
 // v17 (30/08/2026): Kirk e' SOLO il Deposito — chat dismessa, registro dei
@@ -5,7 +8,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v18";
+const CACHE = "kirk-v19";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",

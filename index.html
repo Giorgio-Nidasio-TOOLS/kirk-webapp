@@ -49,12 +49,20 @@
       <textarea id="dep-testo" rows="3"
         placeholder="Appunti, richieste, link LinkedIn, mail dettata... (facoltativo)"></textarea>
 
-      <!-- ALLEGATI: il selettore di sistema di Android mostra da solo galleria,
-           download, Drive e OneDrive. Le immagini scelte qui diventano foto
-           (stessa compressione); il resto viaggia com'e', max 50 MB l'uno. -->
+      <!-- ALLEGATI: due pulsanti, due selettori PULITI (01/09/2026).
+           Un solo input senza `accept` faceva comparire lo "Scegli un'azione"
+           di Samsung con fotocamere e un ambiguo "Foto e video": dichiarando i
+           tipi, Android apre direttamente il selettore giusto.
+           🖼 accept="image/*"  -> selettore immagini (galleria, anche cloud); diventano FOTO
+           📎 accept=documenti  -> selettore file (Recenti, Download, OneDrive); restano com'e' -->
       <div id="dep-allegati" class="dep-allegati"></div>
-      <input id="dep-file-input" type="file" multiple hidden>
-      <button id="dep-allega-btn" class="dep-allega">📎 Allega file</button>
+      <input id="dep-img-input" type="file" accept="image/*" multiple hidden>
+      <input id="dep-file-input" type="file" multiple hidden
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.rtf,.odt,.ods,.odp,.zip,.7z,.eml,.msg,.json,.xml,.html">
+      <div class="dep-allega-row">
+        <button id="dep-immagini-btn" class="dep-allega">🖼 Immagini</button>
+        <button id="dep-allega-btn" class="dep-allega">📎 Documenti</button>
+      </div>
 
       <button id="dep-invia-btn" class="dep-invia">Deposita</button>
       <div id="dep-stato"></div>

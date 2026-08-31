@@ -54,6 +54,8 @@ export function inizializzaDeposito() {
     micBtn:    document.getElementById("dep-mic-btn"),
     audioInfo: document.getElementById("dep-audio-info"),
     testo:     document.getElementById("dep-testo"),
+    imgInput:  document.getElementById("dep-img-input"),
+    imgBtn:    document.getElementById("dep-immagini-btn"),
     fileInput: document.getElementById("dep-file-input"),
     allegaBtn: document.getElementById("dep-allega-btn"),
     allegati:  document.getElementById("dep-allegati"),
@@ -68,6 +70,8 @@ export function inizializzaDeposito() {
   _el.fotoBtn.addEventListener("click", () => _el.fotoInput.click());
   _el.fotoInput.addEventListener("change", _aggiungiFoto);
   _el.micBtn.addEventListener("click", _toggleMic);
+  _el.imgBtn.addEventListener("click", () => _el.imgInput.click());
+  _el.imgInput.addEventListener("change", _aggiungiAllegati);
   _el.allegaBtn.addEventListener("click", () => _el.fileInput.click());
   _el.fileInput.addEventListener("change", _aggiungiAllegati);
   _el.inviaBtn.addEventListener("click", _invia);
@@ -143,9 +147,12 @@ function _disegnaGalleria() {
 }
 
 // ── allegati ─────────────────────────────────────────────────────────────────
-// Il selettore di sistema di Android mostra da solo Recenti, Download, la
-// galleria, Drive e OneDrive (se l'app c'e'). Un'immagine scelta qui diventa
-// una FOTO (stessa compressione a 1600 px); tutto il resto viaggia com'e'.
+// Due selettori PULITI (dal 01/09/2026): 🖼 apre il selettore immagini di
+// Android (galleria, anche cloud) e cio' che arriva diventa FOTO; 📎 apre il
+// selettore file (Recenti, Download, OneDrive) e cio' che arriva viaggia
+// com'e'. Un solo input senza `accept` faceva comparire lo "Scegli un'azione"
+// di Samsung, con le fotocamere e un ambiguo "Foto e video".
+// Lo stesso handler serve entrambi: decide dal TIPO del file, non dal pulsante.
 
 async function _aggiungiAllegati(ev) {
   const files = [...(ev.target.files || [])];
@@ -157,10 +164,11 @@ async function _aggiungiAllegati(ev) {
         const b64 = await _ridimensiona(f);
         _foto.push({ b64 });
         _disegnaGalleria();
-      } catch (e) {
-        _stato("Immagine non leggibile: " + e.message, "err");
+        continue;
+      } catch {
+        // Formato che il canvas non decodifica (es. HEIC): non si perde niente,
+        // il file scende nel ramo allegati e viaggia com'e'.
       }
-      continue;
     }
     if (_allegati.length >= MAX_ALLEGATI) {
       _stato(`Massimo ${MAX_ALLEGATI} allegati per deposito`, "err");
@@ -214,7 +222,7 @@ function _disegnaAllegati() {
     _el.allegati.appendChild(chip);
   });
   _el.allegaBtn.textContent = _allegati.length
-    ? `📎 Allega altro (${_allegati.length})` : "📎 Allega file";
+    ? `📎 Documenti (${_allegati.length})` : "📎 Documenti";
 }
 
 // ── voce ─────────────────────────────────────────────────────────────────────
