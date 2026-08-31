@@ -193,6 +193,37 @@ header {
 }
 #dep-panel textarea:focus { border-color: var(--highlight); }
 
+/* ── Allegati ── */
+.dep-allegati:empty { display: none; }
+.dep-allegati { margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+.dep-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+.dep-chip-nome { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dep-chip-dim  { color: var(--text-dim); font-size: 0.75rem; white-space: nowrap; }
+.dep-chip-x {
+  width: 22px; height: 22px; padding: 0; margin: 0; flex-shrink: 0;
+  border-radius: 50%; border: none;
+  background: var(--err); color: #fff;
+  font-size: 0.9rem; line-height: 1; cursor: pointer;
+}
+
+.dep-allega {
+  width: 100%;
+  background: var(--accent);
+  color: var(--text);
+  border: none; border-radius: 10px;
+  padding: 12px 8px;
+  font-size: 0.95rem; font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
 .dep-invia {
   width: 100%;
   background: var(--verde);

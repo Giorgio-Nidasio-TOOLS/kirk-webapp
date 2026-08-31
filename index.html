@@ -49,6 +49,13 @@
       <textarea id="dep-testo" rows="3"
         placeholder="Appunti, richieste, link LinkedIn, mail dettata... (facoltativo)"></textarea>
 
+      <!-- ALLEGATI: il selettore di sistema di Android mostra da solo galleria,
+           download, Drive e OneDrive. Le immagini scelte qui diventano foto
+           (stessa compressione); il resto viaggia com'e', max 50 MB l'uno. -->
+      <div id="dep-allegati" class="dep-allegati"></div>
+      <input id="dep-file-input" type="file" multiple hidden>
+      <button id="dep-allega-btn" class="dep-allega">📎 Allega file</button>
+
       <button id="dep-invia-btn" class="dep-invia">Deposita</button>
       <div id="dep-stato"></div>
     </section>

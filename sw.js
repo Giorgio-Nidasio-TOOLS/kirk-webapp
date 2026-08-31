@@ -1,9 +1,11 @@
+// v18 (01/09/2026): 📎 Allega file — galleria, download, OneDrive via selettore
+//   di sistema; max 50 MB a file, 5 per deposito; le immagini diventano foto.
 // v17 (30/08/2026): Kirk e' SOLO il Deposito — chat dismessa, registro dei
 //   depositi, saluto vocale con audio ricordato, icona Enterprise.
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v17";
+const CACHE = "kirk-v18";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",

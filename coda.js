@@ -66,6 +66,7 @@ export async function accoda(pacchetto) {
     audio: pacchetto.audio || null,
     foto: pacchetto.foto || [],
     testo: pacchetto.testo || null,
+    allegati: pacchetto.allegati || [],
     origine: "kirk-pwa",
     tentativi: 0,
     prossimo_tentativo: 0,
@@ -122,6 +123,7 @@ export async function svuota() {
           audio: p.audio,
           foto: p.foto,
           testo: p.testo,
+          allegati: p.allegati || [],
           origine: p.origine,
         });
         // Consegnato: SOLO ORA esce dalla coda

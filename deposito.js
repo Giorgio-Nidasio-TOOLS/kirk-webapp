@@ -29,10 +29,16 @@ const MAX_FOTO = 10;
 const LATO_MAX = 1600;      // px: oltre non serve per leggere un biglietto
 const QUALITA_JPEG = 0.82;
 
+const MAX_ALLEGATI = 5;
+// 50 MB per allegato: decisione di Giorgio (31/08/2026) — con rete lenta il
+// pacchetto pesante resta in coda piu' a lungo, ma deve POTER partire.
+const MAX_ALLEGATO_MB = 50;
+
 const REGISTRO_KEY = "kirk_registro_depositi";
 const REGISTRO_MAX = 20;
 
 let _foto = [];             // [{b64}]
+let _allegati = [];         // [{nome, mime, b64, dim}]
 let _audioB64 = null;
 let _durataAudio = 0;
 let _tRegistrazione = 0;
@@ -48,6 +54,9 @@ export function inizializzaDeposito() {
     micBtn:    document.getElementById("dep-mic-btn"),
     audioInfo: document.getElementById("dep-audio-info"),
     testo:     document.getElementById("dep-testo"),
+    fileInput: document.getElementById("dep-file-input"),
+    allegaBtn: document.getElementById("dep-allega-btn"),
+    allegati:  document.getElementById("dep-allegati"),
     inviaBtn:  document.getElementById("dep-invia-btn"),
     stato:     document.getElementById("dep-stato"),
     contatore: document.getElementById("dep-contatore"),
@@ -59,6 +68,8 @@ export function inizializzaDeposito() {
   _el.fotoBtn.addEventListener("click", () => _el.fotoInput.click());
   _el.fotoInput.addEventListener("change", _aggiungiFoto);
   _el.micBtn.addEventListener("click", _toggleMic);
+  _el.allegaBtn.addEventListener("click", () => _el.fileInput.click());
+  _el.fileInput.addEventListener("change", _aggiungiAllegati);
   _el.inviaBtn.addEventListener("click", _invia);
 
   // Ogni cambio della coda ridisegna contatore e registro: e' la coda la verita'.
@@ -131,6 +142,81 @@ function _disegnaGalleria() {
   _el.fotoBtn.textContent = _foto.length ? `📷 Aggiungi (${_foto.length})` : "📷 Foto";
 }
 
+// ── allegati ─────────────────────────────────────────────────────────────────
+// Il selettore di sistema di Android mostra da solo Recenti, Download, la
+// galleria, Drive e OneDrive (se l'app c'e'). Un'immagine scelta qui diventa
+// una FOTO (stessa compressione a 1600 px); tutto il resto viaggia com'e'.
+
+async function _aggiungiAllegati(ev) {
+  const files = [...(ev.target.files || [])];
+  ev.target.value = "";
+  for (const f of files) {
+    if (f.type && f.type.startsWith("image/")) {
+      if (_foto.length >= MAX_FOTO) { _stato(`Massimo ${MAX_FOTO} foto per deposito`, "err"); continue; }
+      try {
+        const b64 = await _ridimensiona(f);
+        _foto.push({ b64 });
+        _disegnaGalleria();
+      } catch (e) {
+        _stato("Immagine non leggibile: " + e.message, "err");
+      }
+      continue;
+    }
+    if (_allegati.length >= MAX_ALLEGATI) {
+      _stato(`Massimo ${MAX_ALLEGATI} allegati per deposito`, "err");
+      break;
+    }
+    if (f.size > MAX_ALLEGATO_MB * 1024 * 1024) {
+      _stato(`"${f.name}" supera i ${MAX_ALLEGATO_MB} MB`, "err");
+      continue;
+    }
+    try {
+      const b64 = await _leggiFileB64(f);
+      _allegati.push({ nome: f.name, mime: f.type || "", b64, dim: f.size });
+      _disegnaAllegati();
+    } catch (e) {
+      _stato(`"${f.name}" non leggibile: ` + e.message, "err");
+    }
+  }
+}
+
+function _leggiFileB64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(reader.error || new Error("lettura fallita"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function _mb(byte) {
+  return byte >= 1048576 ? (byte / 1048576).toFixed(1) + " MB"
+                         : Math.max(1, Math.round(byte / 1024)) + " KB";
+}
+
+function _disegnaAllegati() {
+  _el.allegati.innerHTML = "";
+  _allegati.forEach((a, i) => {
+    const chip = document.createElement("div");
+    chip.className = "dep-chip";
+    const nome = document.createElement("span");
+    nome.className = "dep-chip-nome";
+    nome.textContent = `📎 ${a.nome}`;
+    const dim = document.createElement("span");
+    dim.className = "dep-chip-dim";
+    dim.textContent = _mb(a.dim);
+    const x = document.createElement("button");
+    x.className = "dep-chip-x";
+    x.textContent = "×";
+    x.title = "Togli questo allegato";
+    x.addEventListener("click", () => { _allegati.splice(i, 1); _disegnaAllegati(); });
+    chip.append(nome, dim, x);
+    _el.allegati.appendChild(chip);
+  });
+  _el.allegaBtn.textContent = _allegati.length
+    ? `📎 Allega altro (${_allegati.length})` : "📎 Allega file";
+}
+
 // ── voce ─────────────────────────────────────────────────────────────────────
 
 async function _toggleMic() {
@@ -164,13 +250,14 @@ async function _invia() {
   if (isRecording()) { _stato("Ferma prima la registrazione", "err"); return; }
 
   const testo = (_el.testo.value || "").trim();
-  if (!_foto.length && !_audioB64 && !testo) {
-    _stato("Serve almeno una foto, la voce o del testo", "err");
+  if (!_foto.length && !_audioB64 && !testo && !_allegati.length) {
+    _stato("Serve almeno una foto, la voce, del testo o un allegato", "err");
     return;
   }
 
   const client_id = nuovoClientId();
   const creato = new Date().toISOString();
+  const pesoAllegati = _allegati.reduce((s, a) => s + (a.dim || 0), 0);
 
   // Il registro si scrive PRIMA di accodare: se anche l'app morisse qui,
   // meglio una riga in piu' nel registro che un deposito senza traccia.
@@ -180,6 +267,7 @@ async function _invia() {
     n_foto: _foto.length,
     durata_audio: _audioB64 ? _durataAudio : 0,
     ha_testo: Boolean(testo),
+    n_allegati: _allegati.length,
   });
 
   // Il pacchetto va in coda e il modulo si svuota SUBITO: non si aspetta il server.
@@ -189,22 +277,32 @@ async function _invia() {
     audio: _audioB64,
     foto: _foto.map((f) => f.b64),
     testo: testo || null,
+    allegati: _allegati.map((a) => ({ nome: a.nome, mime: a.mime, b64: a.b64 })),
   });
 
   _reset();
   _disegnaRegistro();
-  _stato("✓ In coda — parte da sola appena c'è rete", "ok");
-  setTimeout(() => _stato("", ""), 2500);
+  // Un pacchetto pesante non e' un errore, ma con rete lenta ci vorra' pazienza:
+  // meglio dirlo subito che lasciar dubitare del contatore fermo.
+  if (pesoAllegati > 25 * 1048576) {
+    _stato(`✓ In coda — pacchetto pesante (${_mb(pesoAllegati)}): con rete lenta servirà pazienza`, "ok");
+    setTimeout(() => _stato("", ""), 6000);
+  } else {
+    _stato("✓ In coda — parte da sola appena c'è rete", "ok");
+    setTimeout(() => _stato("", ""), 2500);
+  }
 }
 
 function _reset() {
   _foto = [];
+  _allegati = [];
   _audioB64 = null;
   _durataAudio = 0;
   _el.testo.value = "";
   _el.audioInfo.textContent = "";
   _el.micBtn.textContent = "🎤 Registra";
   _disegnaGalleria();
+  _disegnaAllegati();
 }
 
 // ── registro degli ultimi depositi ───────────────────────────────────────────
@@ -246,6 +344,7 @@ async function _disegnaRegistro() {
         n_foto: (p.foto || []).length,
         durata_audio: p.audio ? -1 : 0,
         ha_testo: Boolean(p.testo),
+        n_allegati: (p.allegati || []).length,
       });
     }
   }
@@ -288,6 +387,7 @@ function _descrivi(r) {
   if (r.durata_audio > 0) parti.push(`voce ${r.durata_audio}s`);
   else if (r.durata_audio < 0) parti.push("voce");
   if (r.ha_testo) parti.push("testo");
+  if (r.n_allegati) parti.push(r.n_allegati === 1 ? "1 allegato" : `${r.n_allegati} allegati`);
   return parti.join(" · ") || "—";
 }
 
