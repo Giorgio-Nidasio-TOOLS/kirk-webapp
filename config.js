@@ -14,4 +14,6 @@ export function isConfigured() {
   return Boolean(c.serverUrl && c.token);
 }
 
-export const VAPID_PUBLIC_KEY = 'BNbH1AWGWM8eThd74nRni6n9DMGFyc8KPgaq9ml7LR3abXEs_zn--T_fti6IvRvNU6FLmei7_8JoKO5QKoEo_5A';
+// Chiave pubblica VAPID ruotata il 10/09/2026 (audit 2026-09, M1): la privata vive fuori OneDrive.
+// Dopo una rotazione la vecchia subscription push non vale piu': riattivare il campanello nella PWA.
+export const VAPID_PUBLIC_KEY = 'BBMUD9mqXbYCoL4BpftM-mIl5Fl5ujU5LuWs65OxnTi4vlhIPRInpw97f0teR_f4NfDIm7gcasGmwLIHW0VZuAY';
