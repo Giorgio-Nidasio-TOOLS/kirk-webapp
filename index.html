@@ -37,6 +37,13 @@
       <h2>📥 Deposita</h2>
       <p class="dep-hint">Foto, voce e appunti insieme. Parte da sola appena c'è rete.</p>
 
+      <!-- BOZZA RECUPERATA (11/09/2026): cio' che era in preparazione quando l'app
+           e' stata chiusa. Vive su disco; sparisce solo col deposito o con Scarta. -->
+      <div id="dep-bozza" class="dep-bozza hidden">
+        <span id="dep-bozza-msg"></span>
+        <button id="dep-bozza-scarta" type="button">Scarta</button>
+      </div>
+
       <div id="dep-galleria" class="dep-galleria"></div>
       <input id="dep-foto-input" type="file" accept="image/*" capture="environment" multiple hidden>
 

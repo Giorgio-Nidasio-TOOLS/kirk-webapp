@@ -1,3 +1,7 @@
+// v21 (11/09/2026): deposito a prova di perdita — bozza su disco (testo, foto, allegati
+//   e pezzi della voce man mano che nascono), registratore che sopravvive allo stop del
+//   sistema, «Deposita» che ferma da solo la registrazione, errori grandi e persistenti,
+//   registro CONFERMATO dal PC (/depositi/verifica), token sbagliato detto in chiaro.
 // v20 (10/09/2026): chiave pubblica VAPID ruotata (audit 2026-09, M1) — solo config.js;
 //   il bump serve perche' il telefono ricarichi config.js dalla rete e non dalla cache.
 // v19 (01/09/2026): allegati con due selettori puliti — 🖼 Immagini (selettore
@@ -10,7 +14,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v20";
+const CACHE = "kirk-v21";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",

@@ -1,9 +1,10 @@
 import { getConfig } from "./config.js";
 
 /**
- * Dal 30/08/2026 la PWA parla col backend per due sole cose:
- *  - /deposito  — il pacchetto (foto + voce + testo), via coda.js
- *  - /health    — lo stato del collegamento col PC
+ * Dal 30/08/2026 la PWA parla col backend per poche cose:
+ *  - /deposito           — il pacchetto (foto + voce + testo), via coda.js
+ *  - /health             — lo stato del collegamento col PC (e se il token e' quello giusto)
+ *  - /depositi/verifica  — il registro si fa CONFERMARE dal PC (dall'11/09/2026)
  * (/push-subscribe e' chiamato direttamente da app.js).
  * /command, /session e /note non esistono piu' lato PWA: la chat e' dismessa.
  */
@@ -63,4 +64,17 @@ export async function inviaDeposito(pacchetto) {
 
 export function checkHealth() {
   return request("/health");
+}
+
+/**
+ * Chiede al PC quali di questi depositi ha DAVVERO ricevuto.
+ * Risponde { presenti: [...], mancanti: [...] }. Con la stessa chiamata il
+ * telefono dichiara quanti pacchetti ha in coda e se c'e' una bozza: il PC
+ * lo scrive nel log e il Tool 04 lo sorveglia.
+ */
+export function verificaDepositi(client_ids, in_coda = 0, bozza = false) {
+  return request("/depositi/verifica", {
+    method: "POST",
+    body: JSON.stringify({ client_ids, in_coda, bozza }),
+  });
 }

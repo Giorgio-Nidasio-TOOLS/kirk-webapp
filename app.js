@@ -177,8 +177,16 @@ async function _verificaCollegamento() {
     return;
   }
   try {
-    await checkHealth();
+    const h = await checkHealth();
+    // Dall'11/09/2026: il PC dice se il token e' quello giusto. Dopo una rotazione
+    // dei segreti la PWA vedeva «Kirk pronto» e poi falliva in silenzio sul deposito.
+    if (h && h.token_ok === false) {
+      _setStatus("⚠️ Token non valido: apri ⚙️ e incolla quello nuovo — i depositi restano in coda", "error");
+      settingsPanel.classList.remove("hidden");
+      return;
+    }
     _setStatus("Kirk pronto — collegato al PC", "ok");
+    window.dispatchEvent(new Event("kirk:collegato"));   // il registro si fa confermare
     if (Notification.permission === 'granted') subscribeNotifications();
     else _updateNotifBtn();
   } catch {

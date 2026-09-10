@@ -243,7 +243,26 @@ header {
   min-height: 1.2em;
 }
 #dep-stato.ok  { color: var(--ok); }
-#dep-stato.err { color: var(--err); }
+/* Gli errori sono GRANDI e restano (11/09/2026): una riga grigia sotto il pulsante
+   non l'aveva letta nessuno. */
+#dep-stato.err {
+  color: #fff; background: var(--err);
+  font-size: 0.95rem; font-weight: 600; line-height: 1.35;
+  padding: 10px 12px; border-radius: 8px; text-align: left;
+}
+
+/* Bozza recuperata: cio' che era in preparazione quando l'app e' stata chiusa. */
+.dep-bozza {
+  display: flex; align-items: center; gap: 10px;
+  background: #3b2f05; border: 1px solid var(--warn); color: #fde68a;
+  font-size: 0.86rem; line-height: 1.35;
+  padding: 10px 12px; border-radius: 8px; margin-bottom: 10px;
+}
+.dep-bozza span { flex: 1; }
+.dep-bozza button {
+  flex: none; background: transparent; color: #fde68a; border: 1px solid var(--warn);
+  border-radius: 6px; padding: 6px 10px; font-size: 0.8rem;
+}
 
 /* ── Registro degli ultimi depositi ─────────────────────────────────────── */
 .registro { padding: 0 4px; }
@@ -267,8 +286,10 @@ header {
 .reg-ora  { color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .reg-cosa { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reg-esito { white-space: nowrap; font-size: 0.78rem; }
-.registro li.consegnato .reg-esito { color: var(--ok); }
-.registro li.in-coda   .reg-esito { color: var(--warn); font-weight: 600; }
+.registro li.consegnato .reg-esito { color: var(--ok); opacity: 0.7; }      /* uscito dalla coda, PC non ancora sentito */
+.registro li.sul-pc     .reg-esito { color: var(--ok); font-weight: 600; }   /* confermato dal PC */
+.registro li.mancante   .reg-esito { color: var(--err); font-weight: 700; }  /* il PC non lo ha mai ricevuto */
+.registro li.in-coda    .reg-esito { color: var(--warn); font-weight: 600; }
 .registro-vuoto { font-size: 0.8rem; color: var(--text-dim); padding: 6px; }
 
 /* ── Biometric gate ─────────────────────────────────────────────────────── */

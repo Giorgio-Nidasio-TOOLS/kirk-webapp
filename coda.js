@@ -1,5 +1,5 @@
 /**
- * Coda offline dei depositi.
+ * Coda offline dei depositi + BOZZA del deposito in preparazione.
  *
  * PERCHE' ESISTE: in fiera il campo non c'e' e il PC di Giorgio puo' essere spento.
  * Senza coda i depositi si perdono in silenzio — ed e' il fallimento peggiore,
@@ -11,11 +11,19 @@
  *    (in fiera i ritenti sono la norma, non l'eccezione)
  *  - il pacchetto e' immutabile una volta accodato
  *  - IndexedDB, non localStorage: le foto superano la quota dei 5 MB
+ *
+ * LA BOZZA (dall'11/09/2026, dopo un deposito perso): tutto cio' che Giorgio
+ * sta preparando — testo, foto, allegati e i pezzi della registrazione man
+ * mano che nascono — vive su disco, non in memoria. Se Android chiude l'app,
+ * se lo schermo si blocca, se il registratore muore, alla riapertura la bozza
+ * e' li' e si puo' depositare. Si cancella SOLO quando il pacchetto e' in coda.
  */
 
 const DB_NAME = "kirk-deposito";
-const DB_VERSION = 1;
+const DB_VERSION = 2;          // v2 (11/09/2026): store "bozza"
 const STORE = "coda";
+const STORE_BOZZA = "bozza";
+const BOZZA_ID = "corrente";
 
 const ATTESE_MS = [5000, 15000, 60000, 300000, 900000]; // 5s, 15s, 1m, 5m, 15m
 
@@ -35,23 +43,26 @@ function _apri() {
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: "client_id" });
       }
+      if (!db.objectStoreNames.contains(STORE_BOZZA)) {
+        db.createObjectStore(STORE_BOZZA, { keyPath: "id" });
+      }
     };
     req.onsuccess = () => { _db = req.result; resolve(_db); };
     req.onerror = () => reject(req.error);
   });
 }
 
-function _tx(modo, fn) {
+function _tx(modo, fn, store = STORE) {
   return _apri().then((db) => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, modo);
-    const store = tx.objectStore(STORE);
-    const req = fn(store);
+    const tx = db.transaction(store, modo);
+    const s = tx.objectStore(store);
+    const req = fn(s);
     tx.oncomplete = () => resolve(req?.result);
     tx.onerror = () => reject(tx.error);
   }));
 }
 
-// ── API pubblica ─────────────────────────────────────────────────────────────
+// ── API pubblica: coda ───────────────────────────────────────────────────────
 
 export function nuovoClientId() {
   if (crypto.randomUUID) return crypto.randomUUID();
@@ -166,4 +177,27 @@ export function avviaSorveglianza() {
     if (document.visibilityState === "visible") svuota();
   });
   svuota();
+}
+
+// ── API pubblica: bozza ──────────────────────────────────────────────────────
+
+/**
+ * Salva la bozza corrente (sostituisce la precedente). I pezzi audio sono
+ * Blob: IndexedDB li conserva cosi' come sono, senza passare da base64.
+ */
+export function salvaBozza(bozza) {
+  return _tx("readwrite", (s) => s.put({ ...bozza, id: BOZZA_ID, aggiornato: Date.now() }),
+             STORE_BOZZA);
+}
+
+export async function leggiBozza() {
+  try {
+    return (await _tx("readonly", (s) => s.get(BOZZA_ID), STORE_BOZZA)) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function svuotaBozza() {
+  return _tx("readwrite", (s) => s.delete(BOZZA_ID), STORE_BOZZA).catch(() => {});
 }
