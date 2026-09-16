@@ -290,6 +290,8 @@ header {
 .registro li.sul-pc     .reg-esito { color: var(--ok); font-weight: 600; }   /* confermato dal PC */
 .registro li.mancante   .reg-esito { color: var(--err); font-weight: 700; }  /* il PC non lo ha mai ricevuto */
 .registro li.in-coda    .reg-esito { color: var(--warn); font-weight: 600; }
+/* dato per perso, con il motivo a verbale: non e' un allarme, ma nemmeno un «consegnato» */
+.registro li.rinunciato .reg-esito { color: var(--muted, #8a8a8a); text-decoration: line-through; }
 .registro-vuoto { font-size: 0.8rem; color: var(--text-dim); padding: 6px; }
 
 /* ── Biometric gate ─────────────────────────────────────────────────────── */

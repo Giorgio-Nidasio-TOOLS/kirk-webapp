@@ -498,9 +498,11 @@ function _registraDeposito(voce) {
 function _leggiVerifica() {
   try {
     const v = JSON.parse(localStorage.getItem(VERIFICA_KEY) || "null");
-    return v && Array.isArray(v.presenti) ? v : { presenti: [], mancanti: [], ts: 0 };
+    return v && Array.isArray(v.presenti)
+      ? { rinunciati: [], ...v }        // le verifiche vecchie non hanno il terzo stato
+      : { presenti: [], mancanti: [], rinunciati: [], ts: 0 };
   } catch {
-    return { presenti: [], mancanti: [], ts: 0 };
+    return { presenti: [], mancanti: [], rinunciati: [], ts: 0 };
   }
 }
 
@@ -523,9 +525,17 @@ async function _verificaRegistro() {
     const prec = _leggiVerifica();
     // Un deposito confermato una volta resta confermato: il PC puo' archiviare le fonti.
     const presenti = [...new Set([...(prec.presenti || []), ...(esito.presenti || [])])];
-    const mancanti = (esito.mancanti || []).filter((id) => !presenti.includes(id));
+    // ⭐ Terzo stato, dal 16/09/2026: il PC puo' dire «questo l'ho DATO PER PERSO, ecco perche'».
+    //    Non e' un «consegnato» (sarebbe una bugia) e non e' piu' un allarme: e' una perdita
+    //    gia' guardata e messa a verbale. Senza questo stato la riga resta rossa per sempre e
+    //    l'avviso perde significato — un semaforo sempre acceso e' un semaforo spento.
+    const rinunciati = (esito.rinunciati || []).filter((r) => r && r.client_id);
+    const idRinunciati = new Set(rinunciati.map((r) => r.client_id));
+    const mancanti = (esito.mancanti || [])
+      .filter((id) => !presenti.includes(id) && !idRinunciati.has(id));
     try {
-      localStorage.setItem(VERIFICA_KEY, JSON.stringify({ ts: Date.now(), presenti, mancanti }));
+      localStorage.setItem(VERIFICA_KEY,
+        JSON.stringify({ ts: Date.now(), presenti, mancanti, rinunciati }));
     } catch { /* quota */ }
     _disegnaRegistro();
   } catch {
@@ -551,6 +561,7 @@ async function _disegnaRegistro() {
   const verifica = _leggiVerifica();
   const sulPC = new Set(verifica.presenti || []);
   const mancanti = new Set(verifica.mancanti || []);
+  const rinunciati = new Map((verifica.rinunciati || []).map((r) => [r.client_id, r]));
 
   const righe = _leggiRegistro();
   const noti = new Set(righe.map((r) => r.client_id));
@@ -594,6 +605,12 @@ async function _disegnaRegistro() {
       li.className = "mancante";
       esito.textContent = "⚠️ il PC non lo ha";
       esito.title = "Il PC non ha mai ricevuto questo deposito. Se puoi, rifallo.";
+    } else if (rinunciati.has(r.client_id)) {
+      const v = rinunciati.get(r.client_id);
+      li.className = "rinunciato";
+      esito.textContent = "✕ perso, chiuso";
+      esito.title = `Dato per perso il ${v.data || "?"}: ${v.motivo || "senza motivo"}`
+        + (v.rimedio ? `\nAl suo posto: ${v.rimedio}` : "");
     } else if (sulPC.has(r.client_id)) {
       li.className = "sul-pc";
       esito.textContent = "✓ sul PC";

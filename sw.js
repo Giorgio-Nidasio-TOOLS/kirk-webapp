@@ -1,3 +1,8 @@
+// v22 (16/09/2026): un deposito perso si puo' DARE PER PERSO, con il motivo. Terzo stato nel
+//   registro — «✕ perso, chiuso» — accanto a «sul PC» e «il PC non lo ha»: il PC lo dichiara
+//   in data/depositi_rinunciati.json e /depositi/verifica lo restituisce con motivo e rimedio.
+//   ⭐ Serve perche' una riga irrecuperabile teneva GIALLA per sempre la sentinella del Tool 04,
+//   e un semaforo sempre acceso e' un semaforo spento.
 // v21 (11/09/2026): deposito a prova di perdita — bozza su disco (testo, foto, allegati
 //   e pezzi della voce man mano che nascono), registratore che sopravvive allo stop del
 //   sistema, «Deposita» che ferma da solo la registrazione, errori grandi e persistenti,
@@ -14,7 +19,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v21";
+const CACHE = "kirk-v22";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
