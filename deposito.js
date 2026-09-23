@@ -31,7 +31,7 @@
 
 import {
   accoda, nuovoClientId, quanti, inAttesa, osserva, avviaSorveglianza,
-  salvaBozza, leggiBozza, svuotaBozza,
+  salvaBozza, leggiBozza, svuotaBozza, leggiDiario, spariti,
 } from "./coda.js";
 import { startRecording, stopRecording, isRecording, blobToBase64 } from "./audio.js";
 import { verificaDepositi } from "./api.js";
@@ -521,7 +521,13 @@ async function _verificaRegistro() {
     const pendenti = new Set(inCoda.map((p) => p.client_id));
     const daVerificare = righe.map((r) => r.client_id).filter((id) => id && !pendenti.has(id));
     const bozza = Boolean(await leggiBozza());
-    const esito = await verificaDepositi(daVerificare, inCoda.length, bozza);
+    // ⭐ Dal 23/09/2026 (v23): con la verifica viaggiano il DIARIO della coda (ultime voci;
+    //    il PC scarta i doppioni) e gli SPARITI — accodati, mai consegnati, non piu' in coda.
+    //    Incidente del 22/09: senza il diario il PC non aveva nulla da leggere.
+    const spar = await spariti();
+    const diario = leggiDiario().slice(-80);
+    const esito = await verificaDepositi(daVerificare, inCoda.length, bozza,
+                                         { diario, spariti: spar });
     const prec = _leggiVerifica();
     // Un deposito confermato una volta resta confermato: il PC puo' archiviare le fonti.
     const presenti = [...new Set([...(prec.presenti || []), ...(esito.presenti || [])])];
@@ -549,6 +555,8 @@ async function _verificaRegistro() {
  * L'esito di ogni riga si DERIVA, non si dichiara:
  *  - client_id ancora in coda        → ⏳ in coda (col numero di tentativi, se ha gia' fallito)
  *  - il PC ha detto di averlo        → ✓ sul PC
+ *  - il diario dice accodato, non e' in coda e non e' mai stato consegnato → ⚠️ sparito dalla coda
+ *    (v23, incidente 22/09/2026: il telefono lo AVEVA e lo ha perso; piu' grave di «mancante»)
  *  - il PC ha detto di NON averlo    → ⚠️ il PC non lo ha
  *  - non piu' in coda, PC non ancora sentito → ✓ consegnato (da confermare)
  * Un pacchetto in coda senza riga nel registro (non dovrebbe accadere) si mostra lo stesso.
@@ -562,6 +570,9 @@ async function _disegnaRegistro() {
   const sulPC = new Set(verifica.presenti || []);
   const mancanti = new Set(verifica.mancanti || []);
   const rinunciati = new Map((verifica.rinunciati || []).map((r) => [r.client_id, r]));
+  // Gli SPARITI li sa il telefono da solo, dal suo diario: non serve il PC per dirlo.
+  let spar = new Set();
+  try { spar = new Set(await spariti()); } catch { spar = new Set(); }
 
   const righe = _leggiRegistro();
   const noti = new Set(righe.map((r) => r.client_id));
@@ -601,6 +612,16 @@ async function _disegnaRegistro() {
       const tentativi = p.tentativi || 0;
       esito.textContent = tentativi ? `⏳ in coda · ${tentativi} tentativ${tentativi === 1 ? "o" : "i"}` : "⏳ in coda";
       if (p.ultimo_errore) esito.title = p.ultimo_errore;
+    } else if (sulPC.has(r.client_id)) {
+      // La prova sul PC vince su tutto il resto: se il file c'e', e' arrivato.
+      li.className = "sul-pc";
+      esito.textContent = "✓ sul PC";
+      esito.title = "Confermato dal PC: il pacchetto è sul disco";
+    } else if (spar.has(r.client_id)) {
+      li.className = "sparito";
+      esito.textContent = "⚠️ sparito dalla coda";
+      esito.title = "Il telefono lo aveva in coda e lo ha perso senza consegnarlo. "
+        + "Il diario è stato mandato al PC. Se puoi, rifallo.";
     } else if (mancanti.has(r.client_id)) {
       li.className = "mancante";
       esito.textContent = "⚠️ il PC non lo ha";
@@ -611,10 +632,6 @@ async function _disegnaRegistro() {
       esito.textContent = "✕ perso, chiuso";
       esito.title = `Dato per perso il ${v.data || "?"}: ${v.motivo || "senza motivo"}`
         + (v.rimedio ? `\nAl suo posto: ${v.rimedio}` : "");
-    } else if (sulPC.has(r.client_id)) {
-      li.className = "sul-pc";
-      esito.textContent = "✓ sul PC";
-      esito.title = "Confermato dal PC: il pacchetto è sul disco";
     } else {
       li.className = "consegnato";
       esito.textContent = "✓ consegnato";

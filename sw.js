@@ -1,3 +1,9 @@
+// v23 (23/09/2026): la coda che PERDE — incidente del 22/09 (voce di 107 s in coda con «3
+//   tentativi» a PC spento, poi sparita senza consegna). Tre difese in coda.js: DIARIO della
+//   coda in localStorage (mandato al PC con la verifica, stato «⚠️ sparito dalla coda»),
+//   COPIA di ogni pacchetto nella cache "kirk-coda-copia" con ripristino automatico,
+//   navigator.storage.persist(). Rilettura del record dopo l'accodamento.
+//   ⚠️ La cache della COPIA NON va cancellata al cambio di versione: vedi activate.
 // v22 (16/09/2026): un deposito perso si puo' DARE PER PERSO, con il motivo. Terzo stato nel
 //   registro — «✕ perso, chiuso» — accanto a «sul PC» e «il PC non lo ha»: il PC lo dichiara
 //   in data/depositi_rinunciati.json e /depositi/verifica lo restituisce con motivo e rimedio.
@@ -19,7 +25,10 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v22";
+const CACHE = "kirk-v23";
+// ⚠️ La copia dei pacchetti in coda (coda.js) vive in questa cache: NON e' una cache di
+//    versione e non va MAI cancellata all'attivazione, o si butta via la rete di sicurezza.
+const CACHE_COPIA = "kirk-coda-copia";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./app.js", "./api.js", "./audio.js",
@@ -37,7 +46,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE && k !== CACHE_COPIA).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();

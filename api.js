@@ -72,9 +72,11 @@ export function checkHealth() {
  * telefono dichiara quanti pacchetti ha in coda e se c'e' una bozza: il PC
  * lo scrive nel log e il Tool 04 lo sorveglia.
  */
-export function verificaDepositi(client_ids, in_coda = 0, bozza = false) {
+export function verificaDepositi(client_ids, in_coda = 0, bozza = false, extra = {}) {
+  // Dal 23/09/2026 (v23) `extra` porta il DIARIO della coda e gli SPARITI:
+  // il PC li conserva e li logga, il Tool 04 li sorveglia (incidente 22/09).
   return request("/depositi/verifica", {
     method: "POST",
-    body: JSON.stringify({ client_ids, in_coda, bozza }),
+    body: JSON.stringify({ client_ids, in_coda, bozza, ...extra }),
   });
 }
