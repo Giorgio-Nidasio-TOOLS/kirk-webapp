@@ -23,7 +23,7 @@
     <span id="app-name">Comandante Kirk</span>
     <span id="dep-contatore" class="hidden" title="Depositi non ancora arrivati al PC"></span>
     <div class="header-btns">
-      <button id="notif-btn" title="Abilita notifiche push" style="display:none">🔔</button>
+      <button id="notif-btn" title="Bacheca delle notifiche">🔔<span id="notif-pallino" class="pallino hidden"></span></button>
       <button id="mute-btn" title="Audio del saluto">🔊</button>
       <button id="settings-btn" title="Impostazioni">⚙️</button>
     </div>
@@ -106,6 +106,18 @@
     </label>
     <button id="save-settings">Salva e connetti</button>
     <button id="close-settings" class="secondary">Chiudi</button>
+  </div>
+
+  <!-- BACHECA DELLE NOTIFICHE (dal 02/10/2026, v24): le push degli ultimi 30 giorni, lette dal
+       registro del PC. Solo lettura. I testi si scrivono SEMPRE come testo (textContent):
+       alcune notifiche portano parole di persone esterne (le risposte del Forum). -->
+  <div id="notifiche-panel" class="panel notifiche hidden">
+    <div class="notifiche-testa">
+      <h3>🔔 Notifiche</h3>
+      <button id="notifiche-chiudi" class="secondary" type="button">Chiudi</button>
+    </div>
+    <p id="notifiche-stato" class="notifiche-stato"></p>
+    <ul id="notifiche-lista" class="notifiche-lista"></ul>
   </div>
 
   <script type="module" src="app.js"></script>

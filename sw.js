@@ -1,5 +1,11 @@
+// v24 (02/10/2026): la BACHECA DELLE NOTIFICHE. Ogni push ha un tag suo («kirk-<id>»): le
+//   notifiche si IMPILANO nella tendina invece di cancellarsi a vicenda (fino alla v23 il tag
+//   era uno solo, 'kirk-monitor', e ogni push nuova sostituiva la precedente — Giorgio, 29/09:
+//   «vedo solo la notifica singola»). Il titolo arriva dal PC («Forum · 16:59»); a ogni push le
+//   finestre aperte di Kirk accendono il pallino della campanella; il tocco sulla push apre
+//   Kirk con la bacheca gia' aperta su quella notifica. File nuovo: notifiche.js (in ASSETS).
 // v23 (23/09/2026): la coda che PERDE — incidente del 22/09 (voce di 107 s in coda con «3
-//   tentativi» a PC spento, poi sparita senza consegna). Tre difese in coda.js: DIARIO della
+//   tentativi» a PC spento, poi sparita). Tre difese in coda.js: DIARIO della
 //   coda in localStorage (mandato al PC con la verifica, stato «⚠️ sparito dalla coda»),
 //   COPIA di ogni pacchetto nella cache "kirk-coda-copia" con ripristino automatico,
 //   navigator.storage.persist(). Rilettura del record dopo l'accodamento.
@@ -25,7 +31,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v23";
+const CACHE = "kirk-v24";
 // ⚠️ La copia dei pacchetti in coda (coda.js) vive in questa cache: NON e' una cache di
 //    versione e non va MAI cancellata all'attivazione, o si butta via la rete di sicurezza.
 const CACHE_COPIA = "kirk-coda-copia";
@@ -34,6 +40,7 @@ const ASSETS = [
   "./app.js", "./api.js", "./audio.js",
   "./tts.js", "./config.js",
   "./biometric.js", "./deposito.js", "./coda.js",
+  "./notifiche.js",
   "./manifest.json", "./icon-192.png",
   "./kirk-avatar.jpg"
 ];
@@ -52,35 +59,47 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-self.addEventListener('push', event => {
-  let title = 'Kirk Monitor';
-  let body = 'Notifica dal sistema';
+// Un tag per notifica: senza id (PC vecchio, prova a mano) se ne inventa uno che non si ripete.
+let _senzaId = 0;
+
+self.addEventListener("push", (event) => {
+  let d = {};
   if (event.data) {
-    try {
-      const d = event.data.json();
-      title = d.title || title;
-      body = d.body || body;
-    } catch (_) {
-      body = event.data.text();
-    }
+    try { d = event.data.json() || {}; } catch (_) { d = { body: event.data.text() }; }
   }
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: '/kirk-webapp/icon-192.png',
-      badge: '/kirk-webapp/icon-192.png',
-      tag: 'kirk-monitor',
-      renotify: true
-    })
-  );
+  const id = typeof d.id === "string" && d.id ? d.id : null;
+  const opzioni = {
+    body: d.body || "Notifica dal sistema",
+    icon: "/kirk-webapp/icon-192.png",
+    badge: "/kirk-webapp/icon-192.png",
+    tag: "kirk-" + (id || `senza-id-${Date.now()}-${++_senzaId}`),
+    data: { id },
+  };
+  if (typeof d.ts === "number") opzioni.timestamp = Math.round(d.ts * 1000);   // ora di PARTENZA
+  event.waitUntil((async () => {
+    await self.registration.showNotification(d.title || "Kirk", opzioni);
+    const finestre = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const f of finestre) f.postMessage({ tipo: "notifica", id });
+  })());
 });
 
-self.addEventListener('notificationclick', event => {
+self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/kirk-webapp/'));
+  const id = (event.notification.data && event.notification.data.id) || null;
+  event.waitUntil((async () => {
+    const finestre = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const kirk = finestre.find((f) => String(f.url || "").includes("/kirk-webapp/"));
+    if (kirk) {
+      try { await kirk.focus(); } catch (_) { /* il sistema puo' negarlo: il messaggio parte lo stesso */ }
+      if (id) kirk.postMessage({ tipo: "apri-notifica", id });
+      return;
+    }
+    await self.clients.openWindow("/kirk-webapp/" + (id ? "?notifica=" + encodeURIComponent(id) : ""));
+  })());
 });
 
-// Network-first: sempre file freschi dalla rete, cache solo se offline
+// Network-first: sempre file freschi dalla rete, cache solo se offline.
+// v24: ignoreSearch, perche' il tocco su una push apre «/kirk-webapp/?notifica=<id>».
 self.addEventListener("fetch", (e) => {
   if (e.request.url.includes("cfargotunnel.com") || e.request.url.includes("ngrok")) return;
   e.respondWith(
@@ -90,6 +109,6 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then((c) => c.put(e.request, clone));
         return response;
       })
-      .catch(() => caches.match(e.request))
+      .catch(() => caches.match(e.request, { ignoreSearch: true }))
   );
 });

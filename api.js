@@ -5,6 +5,7 @@ import { getConfig } from "./config.js";
  *  - /deposito           — il pacchetto (foto + voce + testo), via coda.js
  *  - /health             — lo stato del collegamento col PC (e se il token e' quello giusto)
  *  - /depositi/verifica  — il registro si fa CONFERMARE dal PC (dall'11/09/2026)
+ *  - /notifiche          — la BACHECA DELLE NOTIFICHE (dal 02/10/2026, sola lettura)
  * (/push-subscribe e' chiamato direttamente da app.js).
  * /command, /session e /note non esistono piu' lato PWA: la chat e' dismessa.
  */
@@ -79,4 +80,13 @@ export function verificaDepositi(client_ids, in_coda = 0, bozza = false, extra =
     method: "POST",
     body: JSON.stringify({ client_ids, in_coda, bozza, ...extra }),
   });
+}
+
+/**
+ * La BACHECA DELLE NOTIFICHE (dal 02/10/2026): le notifiche degli ultimi 30 giorni, dalla piu'
+ * recente, ciascuna con l'esito della sua push. Sola lettura.
+ * Risponde { notifiche: [{id, ts, t, fonte, titolo, testo, esito}], righe_scartate }.
+ */
+export function getNotifiche() {
+  return request("/notifiche");
 }

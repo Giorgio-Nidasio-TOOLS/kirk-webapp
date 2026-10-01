@@ -334,3 +334,47 @@ header {
   transition: opacity 0.15s;
 }
 #bio-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Campanella e bacheca delle notifiche (v24, 02/10/2026) ─────────────── */
+/* Il pallino e' ROSSO: resta distinto dal contatore ARANCIONE dei depositi in coda. */
+#notif-btn { position: relative; }
+.pallino {
+  position: absolute; top: 0; right: -2px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px;
+  background: var(--err); color: #fff;
+  font-size: 0.65rem; font-weight: 700; line-height: 17px; text-align: center;
+  pointer-events: none;
+}
+.panel.notifiche { display: flex; flex-direction: column; max-height: calc(100dvh - 72px); }
+.notifiche-testa { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.notifiche-testa h3 { flex: 1; margin-bottom: 0; }
+/* .secondary nel selettore: deve vincere su `.panel button.secondary` (margin-top: 8px) */
+.notifiche-testa button.secondary { width: auto; margin-top: 0; padding: 6px 12px; }
+.notifiche-stato { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 6px; }
+.notifiche-stato:empty { display: none; }
+.notifiche-lista { list-style: none; overflow-y: auto; flex: 1; }
+.not-giorno {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 10px 2px 4px; border-bottom: 1px solid var(--border);
+}
+.notifica { padding: 8px 2px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.not-riga {
+  display: grid; grid-template-columns: 1.1em auto auto 1fr; gap: 8px;
+  align-items: baseline; font-size: 0.85rem;
+}
+.not-segno { color: var(--text-dim); text-align: center; }
+.notifica.nuova .not-segno { color: var(--err); }
+.notifica.nuova .not-inizio { font-weight: 600; }
+.notifica.esito-ko .not-segno { color: var(--warn); }
+.not-ora { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.not-fonte { color: var(--highlight); font-weight: 600; white-space: nowrap; }
+.not-inizio { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.not-testo {
+  margin: 8px 0 2px; padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.88rem; line-height: 1.45;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.not-esito { margin-top: 6px; color: var(--warn); font-size: 0.8rem; }

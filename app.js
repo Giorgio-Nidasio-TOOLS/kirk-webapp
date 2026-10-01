@@ -6,6 +6,7 @@ import {
 import { checkHealth } from "./api.js";
 import { speak, toggleMute, isMuted } from "./tts.js";
 import { inizializzaDeposito } from "./deposito.js";
+import { inizializzaNotifiche, apriDaIndirizzo, chiudiBacheca } from "./notifiche.js";
 
 /**
  * Riscritto il 30/08/2026: Kirk e' SOLO il Deposito.
@@ -17,9 +18,9 @@ import { inizializzaDeposito } from "./deposito.js";
  * e' gia' davanti.
  *
  * Restano: il gate biometrico (protegge il token), le Impostazioni (URL e
- * token), il campanello delle notifiche push (lo usano il Tool 04 e il digest
- * e-mail per avvisare il telefono) e il saluto vocale, con l'audio spegnibile
- * e la scelta ricordata fra un avvio e l'altro.
+ * token), la campanella delle notifiche (abilita le push e, dal 02/10/2026,
+ * apre la BACHECA DELLE NOTIFICHE — notifiche.js) e il saluto vocale, con
+ * l'audio spegnibile e la scelta ricordata fra un avvio e l'altro.
  */
 
 const statusBar     = document.getElementById("status");
@@ -111,13 +112,20 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-async function subscribeNotifications() {
+async function subscribeNotifications(rifaiDaCapo = false) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') { _updateNotifBtn(); return; }
     const reg = await navigator.serviceWorker.ready;
-    const existing = await reg.pushManager.getSubscription();
+    let existing = await reg.pushManager.getSubscription();
+    if (existing && rifaiDaCapo) {
+      // Dal 02/10/2026: il PC dice che l'iscrizione e' SCADUTA (404/410 dal servizio push).
+      // Rimandargli quella che il browser ha in memoria vorrebbe dire rimandargli una morta:
+      // si cancella e se ne crea una nuova.
+      try { await existing.unsubscribe(); } catch { /* gia' morta: pazienza */ }
+      existing = null;
+    }
     const sub = existing || await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -139,15 +147,14 @@ async function subscribeNotifications() {
 }
 
 function _updateNotifBtn() {
-  if (!('Notification' in window) || !('PushManager' in window)) {
-    notifBtn.style.display = 'none';
-    return;
-  }
-  const perm = Notification.permission;
-  notifBtn.style.display = perm === 'granted' ? 'none' : 'inline-flex';
-  notifBtn.title = perm === 'denied'
-    ? 'Notifiche bloccate — abilita da Impostazioni Chrome'
-    : 'Tocca per abilitare le notifiche push';
+  // Dal 02/10/2026 (v24) la campanella e' SEMPRE visibile: apre la bacheca delle notifiche
+  // (notifiche.js). Finche' il permesso delle push manca, il primo tocco lo chiede.
+  notifBtn.style.display = 'inline-flex';
+  const push = ('Notification' in window) && ('PushManager' in window);
+  const perm = push ? Notification.permission : 'unsupported';
+  notifBtn.title = perm === 'default' ? 'Tocca per abilitare le notifiche push'
+    : perm === 'denied' ? 'Bacheca delle notifiche (push bloccate: riabilitale da Impostazioni Chrome)'
+    : 'Bacheca delle notifiche';
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -168,6 +175,8 @@ async function init() {
   setTimeout(() => speak("Ciao Giorgio! Teletrasporto pronto."), 300);
 
   await _verificaCollegamento();
+  // Tocco su una push con Kirk chiuso: «/kirk-webapp/?notifica=<id>» (dal 02/10/2026).
+  apriDaIndirizzo();
 }
 
 /** Stato del collegamento col PC. Non e' bloccante: la coda regge comunque. */
@@ -182,13 +191,17 @@ async function _verificaCollegamento() {
     // dei segreti la PWA vedeva «Kirk pronto» e poi falliva in silenzio sul deposito.
     if (h && h.token_ok === false) {
       _setStatus("⚠️ Token non valido: apri ⚙️ e incolla quello nuovo — i depositi restano in coda", "error");
+      chiudiBacheca();   // un pannello alla volta (02/10/2026)
       settingsPanel.classList.remove("hidden");
       return;
     }
     _setStatus("Kirk pronto — collegato al PC", "ok");
     window.dispatchEvent(new Event("kirk:collegato"));   // il registro si fa confermare
-    if (Notification.permission === 'granted') subscribeNotifications();
-    else _updateNotifBtn();
+    if ('Notification' in window && Notification.permission === 'granted') {
+      subscribeNotifications(Boolean(h && h.push_scaduta));   // 02/10/2026: scaduta -> da capo
+    } else {
+      _updateNotifBtn();
+    }
   } catch {
     _setStatus("PC non raggiungibile — i depositi restano in coda", "warning");
   }
@@ -220,8 +233,8 @@ document.getElementById("save-settings").addEventListener("click", () => {
 });
 
 // ── Notifiche ─────────────────────────────────────────────────────────────────
-
-notifBtn.addEventListener("click", () => subscribeNotifications());
+// Dal 02/10/2026 (v24) il tocco sulla campanella lo gestisce notifiche.js: apre la bacheca,
+// oppure chiede il permesso delle push finche' manca (abilitaNotifiche, all'avvio qui sotto).
 
 // ── Audio del saluto (scelta ricordata fra un avvio e l'altro) ───────────────
 
@@ -247,5 +260,13 @@ function _setStatus(text, type) {
 // Kirk non e' raggiungibile: la coda deve poter accogliere depositi offline.
 // In fiera e' proprio la condizione normale.
 inizializzaDeposito();
+try {
+  inizializzaNotifiche({ abilitaNotifiche: () => subscribeNotifications() });
+} catch (e) {
+  // Il Deposito non deve mai dipendere dalla bacheca (01/10/2026): se la bacheca non parte (per esempio
+  // index.html e app.js di versioni diverse durante la pubblicazione), l'app va avanti senza.
+  console.warn("Bacheca delle notifiche non avviata:", e);
+}
+_updateNotifBtn();
 
 init();
