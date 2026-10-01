@@ -23,6 +23,10 @@ import { isConfigured } from "./config.js";
 const CHIAVE_VISTO = "kirk_notifiche_visto_fino";
 const ESITI_KO = new Set(["nessuna_iscrizione", "iscrizione_scaduta", "troppo_lunga", "errore"]);
 const MSG_PC = "PC non raggiungibile — la bacheca si legge quando Kirk raggiunge il PC";
+// Pulizia della tendina (v25): stessa soglia di sw.js, SOGLIA_PULIZIA_MS (24 h, decisione di
+// Giorgio del 01/10/2026 h 19:21). Duplicata qui perche' il service worker non puo' importare
+// questo modulo.
+const SOGLIA_PULIZIA_MS = 24 * 60 * 60 * 1000;
 
 const _el = {};
 let _ultime = [];            // l'ultima lista del PC, dalla piu' recente
@@ -54,7 +58,22 @@ export function inizializzaNotifiche({ abilitaNotifiche } = {}) {
       if (d.tipo === "notifica") aggiornaPallino();
       else if (d.tipo === "apri-notifica") apriBacheca(d.id || null);
     });
+    _pulisciTendina();   // il meglio possibile: si lancia e non si aspetta, non deve rallentare l'avvio
   }
+}
+
+/** Il meglio possibile (v25): chiude le notifiche di Kirk già nella tendina più vecchie di 24
+ *  ore, come fa sw.js a ogni push — qui solo all'avvio della bacheca. Muta e silenziosa: un
+ *  errore (o l'assenza del service worker) non deve mai bloccare o rallentare l'avvio. */
+async function _pulisciTendina() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const soglia = Date.now() - SOGLIA_PULIZIA_MS;
+    const inTendina = await reg.getNotifications();
+    for (const n of inTendina) {
+      if (typeof n.timestamp === "number" && n.timestamp < soglia) n.close();
+    }
+  } catch { /* meglio possibile: nessun blocco dell'avvio */ }
 }
 
 function _toccoCampanella() {

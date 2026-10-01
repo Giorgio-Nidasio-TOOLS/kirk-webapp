@@ -195,6 +195,15 @@ async function _scartaBozza() {
 async function _aggiungiFoto(ev) {
   const files = [...(ev.target.files || [])];
   ev.target.value = "";                      // permette di riscattare la stessa foto
+  // Copia dell'originale in galleria PRIMA di ridimensionare (vedi _copiaInGalleria):
+  // parte subito, senza attendere ne' rallentare il resize sotto. La prima (il caso piu'
+  // comune: una foto sola) e' sincrona; dalla seconda in poi uno sfalsamento breve, perche'
+  // due <a download> con blob diversi cliccati nello stesso istante JS fanno perdere al
+  // browser il download successivo (collaudato: parte solo il primo, nessun errore).
+  files.forEach((f, i) => {
+    if (i === 0) _copiaInGalleria(f, 1);
+    else setTimeout(() => _copiaInGalleria(f, i + 1), i * 150);
+  });
   for (const f of files) {
     if (_foto.length >= MAX_FOTO) {
       _stato(`Massimo ${MAX_FOTO} foto per deposito`, "err");
@@ -208,6 +217,33 @@ async function _aggiungiFoto(ev) {
     } catch (e) {
       _stato("Foto non leggibile: " + e.message, "err");
     }
+  }
+}
+
+/**
+ * Decisione di Giorgio (30/09/2026): una copia di ogni foto scattata col 📷 resta anche nella
+ * galleria del telefono (cartella Download), perche' lo standard W3C HTML Media Capture vieta
+ * al browser di salvarla da solo ("the user agent MUST NOT save the captured media to any data
+ * storage"). E' l'ORIGINALE, non la copia a 1600 px qui sotto: un download di un file che il
+ * browser ha gia' in memoria, senza toccare il server. Solo il meglio possibile: se qualcosa
+ * fallisce, il Deposito non se ne accorge (try/catch silenzioso, mai _stato).
+ */
+function _copiaInGalleria(file, n) {
+  try {
+    const d = new Date();
+    const due = (x) => String(x).padStart(2, "0");
+    const nome = `Kirk_${d.getFullYear()}-${due(d.getMonth() + 1)}-${due(d.getDate())}_`
+               + `${due(d.getHours())}-${due(d.getMinutes())}-${due(d.getSeconds())}_${n}.jpg`;
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    // Niente a schermo: e' una copia di cortesia, non il Deposito.
   }
 }
 

@@ -1,3 +1,8 @@
+// v25 (01/10/2026): le notifiche di Kirk piu' vecchie di 24 ore spariscono dalla tendina. A ogni
+//   push, dopo averla mostrata, chiude quelle con timestamp (l'ora di partenza) piu' vecchio di
+//   24 ore (registration.getNotifications() + close()); lo stesso fa notifiche.js all'apertura
+//   della bacheca. Aprire la bacheca NON tocca la tendina — resta cosi'. Decisione di Giorgio
+//   del 01/10/2026 h 19:21.
 // v24 (02/10/2026): la BACHECA DELLE NOTIFICHE. Ogni push ha un tag suo («kirk-<id>»): le
 //   notifiche si IMPILANO nella tendina invece di cancellarsi a vicenda (fino alla v23 il tag
 //   era uno solo, 'kirk-monitor', e ogni push nuova sostituiva la precedente — Giorgio, 29/09:
@@ -31,7 +36,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v24";
+const CACHE = "kirk-v25";
 // ⚠️ La copia dei pacchetti in coda (coda.js) vive in questa cache: NON e' una cache di
 //    versione e non va MAI cancellata all'attivazione, o si butta via la rete di sicurezza.
 const CACHE_COPIA = "kirk-coda-copia";
@@ -62,6 +67,10 @@ self.addEventListener("activate", (e) => {
 // Un tag per notifica: senza id (PC vecchio, prova a mano) se ne inventa uno che non si ripete.
 let _senzaId = 0;
 
+// Pulizia della tendina: le notifiche di Kirk piu' vecchie di 24 ore si chiudono da sole
+// (24 h, decisione di Giorgio del 01/10/2026 h 19:21).
+const SOGLIA_PULIZIA_MS = 24 * 60 * 60 * 1000;
+
 self.addEventListener("push", (event) => {
   let d = {};
   if (event.data) {
@@ -80,6 +89,16 @@ self.addEventListener("push", (event) => {
     await self.registration.showNotification(d.title || "Kirk", opzioni);
     const finestre = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const f of finestre) f.postMessage({ tipo: "notifica", id });
+    // Pulizia DOPO il postMessage (giro di correzioni 1, 02/10/2026): una getNotifications()
+    // lenta non deve ritardare il pallino sulla campanella.
+    try {
+      const soglia = Date.now() - SOGLIA_PULIZIA_MS;
+      const inTendina = await self.registration.getNotifications();
+      for (const n of inTendina) {
+        if (n.tag === opzioni.tag) continue;   // la notifica appena mostrata non si chiude da sola
+        if (typeof n.timestamp === "number" && n.timestamp < soglia) n.close();
+      }
+    } catch (_) { /* la pulizia non deve mai impedire ne' la notifica ne' il postMessage */ }
   })());
 });
 
