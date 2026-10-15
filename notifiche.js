@@ -1,4 +1,4 @@
-import { getNotifiche } from "./api.js";
+import { getNotifiche, decidiBozza } from "./api.js";
 import { isConfigured } from "./config.js";
 
 /**
@@ -225,6 +225,8 @@ function _riga(n, quando, visto) {
   const intero = document.createElement("div");
   intero.className = "not-testo hidden";
   intero.textContent = testo;
+  // A4 dell'agente LinkedIn (15/10/2026, v26): una notifica con un'azione «approva_bozza» porta i tre tasti
+  if (n.azione && n.azione.tipo === "approva_bozza") intero.appendChild(_azioni(n));
   if (ko || ignoto) {
     const e = document.createElement("div");
     e.className = "not-esito";
@@ -235,6 +237,66 @@ function _riga(n, quando, visto) {
   li.append(riga, intero);
   li.addEventListener("click", () => _apriRiga(li));
   return li;
+}
+
+// ── A4 (15/10/2026): i tre tasti sulle bozze dell'agente LinkedIn ─────────────────────────────────
+// Approva chiede DUE tocchi (il secondo entro 8 secondi): cio' che parte verso una persona non si ritira.
+// Il tocco manda al PC solo id e impronta: il testo che partira' e' quello mostrato qui, identico.
+const ETICHETTE_DECISIONE = {
+  approva: "approvata: il PC la manda e ti conferma",
+  rivedi: "da rivedere: la trovi in sessione («in-attesa»)",
+  scarta: "scartata",
+};
+let _confermaTimer = null;
+
+function _azioni(n) {
+  const box = document.createElement("div");
+  box.className = "not-azioni";
+  box.addEventListener("click", (e) => e.stopPropagation());   // il tocco sui tasti non chiude la riga
+  const scaduta = typeof n.azione.scade === "number" && n.azione.scade * 1000 < Date.now();
+  if (n.decisione) {
+    box.appendChild(_span("not-decisione", `✓ ${ETICHETTE_DECISIONE[n.decisione] || n.decisione}`));
+    return box;
+  }
+  if (scaduta) {
+    box.appendChild(_span("not-decisione", "Scaduta: decidila in sessione («in-attesa»)."));
+    return box;
+  }
+  const stato = _span("not-decisione", "");
+  const bottone = (etichetta, decisione) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `not-bottone ${decisione}`;
+    b.textContent = etichetta;
+    b.dataset.etichetta = etichetta;
+    b.addEventListener("click", (e) => { e.stopPropagation(); _decidi(n, decisione, b, box, stato); });
+    return b;
+  };
+  box.append(bottone("Approva", "approva"), bottone("Rivedi", "rivedi"), bottone("Scarta", "scarta"), stato);
+  return box;
+}
+
+async function _decidi(n, decisione, bottone, box, stato) {
+  const bottoni = [...box.querySelectorAll("button")];
+  if (decisione === "approva" && bottone.dataset.conferma !== "1") {
+    bottone.dataset.conferma = "1";
+    bottone.textContent = "Confermi l'invio?";
+    clearTimeout(_confermaTimer);
+    _confermaTimer = setTimeout(() => { bottone.dataset.conferma = ""; bottone.textContent = bottone.dataset.etichetta; }, 8000);
+    return;
+  }
+  clearTimeout(_confermaTimer);
+  for (const b of bottoni) b.disabled = true;
+  stato.textContent = "…";
+  try {
+    const r = await decidiBozza(n.id, n.azione.bozza_id, decisione, n.azione.impronta);
+    n.decisione = decisione;
+    for (const b of bottoni) b.remove();
+    stato.textContent = `✓ ${ETICHETTE_DECISIONE[decisione]}` + (r && r.lanciato === false ? " — il PC la esegue al prossimo giro" : "");
+  } catch (err) {
+    stato.textContent = `✗ non registrata (${err.message}): riprova, o decidi in sessione`;
+    for (const b of bottoni) { b.disabled = false; b.dataset.conferma = ""; b.textContent = b.dataset.etichetta; }
+  }
 }
 
 function _apriRiga(li, aperta = null) {

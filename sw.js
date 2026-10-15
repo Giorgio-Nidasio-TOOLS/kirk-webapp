@@ -1,3 +1,7 @@
+// v26 (15/10/2026): i TRE TASTI sulle bozze dell'agente LinkedIn (A4). Una notifica puo' portare un'azione
+//   «approva_bozza»: nella bacheca compaiono Approva (due tocchi), Rivedi, Scarta; il tocco chiama
+//   POST /linkedin/bozza con id e impronta del testo mostrato, il PC manda solo se coincide e conferma.
+//   Nessuna modifica alla push: i tasti vivono nella bacheca, dove c'e' tutto il contesto.
 // v25 (01/10/2026): le notifiche di Kirk piu' vecchie di 24 ore spariscono dalla tendina. A ogni
 //   push, dopo averla mostrata, chiude quelle con timestamp (l'ora di partenza) piu' vecchio di
 //   24 ore (registration.getNotifications() + close()); lo stesso fa notifiche.js all'apertura
@@ -36,7 +40,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v25";
+const CACHE = "kirk-v26";
 // ⚠️ La copia dei pacchetti in coda (coda.js) vive in questa cache: NON e' una cache di
 //    versione e non va MAI cancellata all'attivazione, o si butta via la rete di sicurezza.
 const CACHE_COPIA = "kirk-coda-copia";

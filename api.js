@@ -90,3 +90,16 @@ export function verificaDepositi(client_ids, in_coda = 0, bozza = false, extra =
 export function getNotifiche() {
   return request("/notifiche");
 }
+
+/**
+ * A4 dell'agente LinkedIn (15/10/2026): la decisione di Giorgio su una bozza, dai tasti della bacheca.
+ * Nessun testo viaggia: solo l'id della notifica, l'id della bozza, la decisione e l'impronta del testo
+ * mostrato (il PC manda solo se coincide). Risponde { ok, lanciato }: con lanciato=false il PC la
+ * esegue al prossimo giro del mattino.
+ */
+export function decidiBozza(notificaId, bozzaId, decisione, impronta) {
+  return request("/linkedin/bozza", {
+    method: "POST",
+    body: JSON.stringify({ notifica_id: notificaId, bozza_id: bozzaId, decisione, impronta }),
+  });
+}

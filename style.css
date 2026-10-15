@@ -378,3 +378,11 @@ header {
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .not-esito { margin-top: 6px; color: var(--warn); font-size: 0.8rem; }
+/* A4 (15/10/2026, v26): i tre tasti sulle bozze dell'agente LinkedIn */
+.not-azioni { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.not-bottone { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.95rem; }
+.not-bottone.approva { border-color: var(--highlight); font-weight: 600; }
+.not-bottone.scarta { color: var(--err); }
+.not-bottone[data-conferma="1"] { background: var(--highlight); color: #fff; }
+.not-bottone:disabled { opacity: 0.5; }
+.not-decisione { color: var(--text-dim); font-size: 0.85rem; flex-basis: 100%; }
