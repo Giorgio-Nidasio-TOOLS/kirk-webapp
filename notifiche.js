@@ -18,6 +18,13 @@ import { isConfigured } from "./config.js";
  *    nessuna valanga di pallini dopo una memoria cancellata.
  *  - Nessun polling (Regola 15): il pallino si aggiorna al collegamento col PC, a ogni push
  *    (messaggio del service worker) e al ritorno in primo piano.
+ *
+ * v27 (28/10/2026) — Giorgio: «su Kirk ho moltissime notifiche ma non so distinguere quelle ancora
+ * attuali». In testa alla bacheca «N da decidere» e il filtro «Solo da decidere»; ogni notifica con i
+ * tasti porta l'etichetta del suo stato (da decidere, ✓ approvata/da rivedere/scartata, sostituita,
+ * scaduta). Lo stato lo calcola il PC (notifiche.stati_azione, `stato_azione`): qui c'e' solo il
+ * ripiego per un PC di prima. Le notifiche decise si tolgono dalla TENDINA: subito quando si decide da
+ * qui, e a ogni lista che arriva dal PC (apertura, ritorno in primo piano, push) quelle decise altrove.
  */
 
 const CHIAVE_VISTO = "kirk_notifiche_visto_fino";
@@ -33,6 +40,7 @@ let _ultime = [];            // l'ultima lista del PC, dalla piu' recente
 let _vistoAllApertura = 0;   // il segno di PRIMA: evidenzia le nuove finche' la bacheca e' aperta
 let _abilitaNotifiche = null;
 let _generazione = 0;        // ogni apertura/chiusura della bacheca invalida le risposte ancora in volo
+let _soloDaDecidere = false; // v27: il filtro; torna su «tutte» a ogni apertura della bacheca
 
 export function inizializzaNotifiche({ abilitaNotifiche } = {}) {
   _abilitaNotifiche = abilitaNotifiche || null;
@@ -42,9 +50,14 @@ export function inizializzaNotifiche({ abilitaNotifiche } = {}) {
   _el.chiudi = document.getElementById("notifiche-chiudi");
   _el.stato = document.getElementById("notifiche-stato");
   _el.lista = document.getElementById("notifiche-lista");
+  // v27: il sommario in testa; se manca (index.html di prima) la bacheca funziona senza
+  _el.sommario = document.getElementById("notifiche-sommario");
+  _el.conto = document.getElementById("notifiche-conto");
+  _el.filtro = document.getElementById("notifiche-filtro");
 
   _el.btn.addEventListener("click", _toccoCampanella);
   _el.chiudi.addEventListener("click", chiudiBacheca);
+  _el.filtro?.addEventListener("click", _commutaFiltro);
   document.getElementById("settings-btn")?.addEventListener("click", () => {
     if (!_el.pannello.classList.contains("hidden")) chiudiBacheca();   // un pannello alla volta
   });
@@ -76,6 +89,69 @@ async function _pulisciTendina() {
   } catch { /* meglio possibile: nessun blocco dell'avvio */ }
 }
 
+/** v27: toglie dalla tendina le notifiche di questi id, per tag ESATTO («kirk-<id>», lo stesso di sw.js).
+ *  Il meglio possibile, come _pulisciTendina: si lancia e non si aspetta. */
+async function _chiudiInTendina(ids) {
+  if (!ids.length || !("serviceWorker" in navigator)) return;
+  try {
+    const tag = new Set(ids.map((id) => "kirk-" + id));
+    const reg = await navigator.serviceWorker.ready;
+    for (const n of await reg.getNotifications()) {
+      if (tag.has(n.tag)) n.close();
+    }
+  } catch { /* meglio possibile: la tendina si pulisce alla prossima occasione */ }
+}
+
+/** v27: dopo ogni lista del PC, via dalla tendina le decise (anche quelle decise in sessione o dal Tavolo) e le sostituite. */
+function _chiudiDecise() {
+  _chiudiInTendina(_ultime.filter((n) => STATI_DA_TOGLIERE.has(_statoAzione(n))).map((n) => String(n.id)));
+}
+
+// ── v27 (28/10/2026): lo stato di una notifica con i tasti ────────────────────────────────────────────
+const STATI_DA_TOGLIERE = new Set(["decisa", "superata"]);
+const ETICHETTE_STATO = { da_decidere: "da decidere", superata: "sostituita", scaduta: "scaduta" };
+const BREVE_DECISIONE = { approva: "✓ approvata", rivedi: "✓ da rivedere", scarta: "✓ scartata" };
+
+/** «da_decidere» | «decisa» | «superata» | «scaduta» | null (informativa). La regola vive nel PC
+ *  (notifiche.stati_azione, campo `stato_azione`); qui una decisione appena presa dal telefono vale
+ *  subito, la scadenza si ricontrolla con l'orologio del telefono (una lista vecchia di ore non deve
+ *  offrire tasti scaduti) e, con un PC di prima (campo assente), lo stato si ricava come nella v26. */
+function _statoAzione(n) {
+  if (!n || !n.azione || n.azione.tipo !== "approva_bozza") return null;
+  if (n.decisione) return "decisa";
+  const scaduta = typeof n.azione.scade === "number" && n.azione.scade * 1000 < Date.now();
+  const stato = typeof n.stato_azione === "string" ? n.stato_azione : "da_decidere";
+  return stato === "da_decidere" && scaduta ? "scaduta" : stato;
+}
+
+function _etichettaStato(n) {
+  const stato = _statoAzione(n);
+  if (!stato) return "";
+  if (stato === "decisa") return BREVE_DECISIONE[n.decisione] || "✓ decisa";
+  return ETICHETTE_STATO[stato] || "";
+}
+
+function _daDecidere() { return _ultime.filter((n) => _statoAzione(n) === "da_decidere"); }
+
+/** In testa alla bacheca: «N da decidere» e il filtro. Nascosto finche' la lista non e' arrivata. */
+function _aggiornaSommario() {
+  if (!_el.sommario || !_el.conto || !_el.filtro) return;
+  const n = _daDecidere().length;
+  _el.conto.textContent = n > 0 ? `${n} da decidere` : "Niente da decidere";
+  _el.sommario.classList.toggle("ci-sono", n > 0);
+  _el.filtro.classList.toggle("hidden", n === 0 && !_soloDaDecidere);
+  _el.filtro.textContent = _soloDaDecidere ? "Mostra tutte" : "Solo da decidere";
+  _el.filtro.setAttribute("aria-pressed", _soloDaDecidere ? "true" : "false");
+  _el.sommario.classList.remove("hidden");
+}
+
+function _commutaFiltro(e) {
+  if (e) e.stopPropagation();
+  _soloDaDecidere = !_soloDaDecidere;
+  const aperte = new Set([..._el.lista.querySelectorAll("li.notifica.aperta")].map((li) => li.dataset.id));
+  _disegnaLista(_vistoAllApertura ?? 0, null, aperte);
+}
+
 function _toccoCampanella() {
   const push = "Notification" in window && "PushManager" in window;
   if (push && Notification.permission === "default" && _abilitaNotifiche) {
@@ -94,6 +170,7 @@ export async function aggiornaPallino() {
   try { dati = await getNotifiche(); } catch { return; }
   if (mia !== _generazione) return;   // la bacheca si è aperta o chiusa nel frattempo: decide la sua risposta
   _ultime = _lista(dati);
+  _chiudiDecise();                    // v27: il telefono ora sa delle decisioni prese altrove
   const ultima = _ultime.length ? _ultime[0].ts : null;
   if (!_el.pannello.classList.contains("hidden")) {
     // Bacheca aperta: cio' che arriva adesso Giorgio lo sta guardando.
@@ -124,9 +201,11 @@ export async function apriBacheca(idDaAprire = null) {
     // Il segno «di prima» si fissa ADESSO, prima di ogni attesa: una risposta che arriva mentre la
     // bacheca si carica non deve spostarlo. null = segno assente (si decide quando arriva la lista).
     _vistoAllApertura = _leggiVisto();
+    _soloDaDecidere = false;          // v27: ogni apertura parte da «tutte»
   }
   document.getElementById("settings-panel")?.classList.add("hidden");   // un pannello alla volta
   _el.pannello.classList.remove("hidden");
+  _el.sommario?.classList.add("hidden");   // v27: il conto si mostra solo con la lista del PC
   _el.lista.replaceChildren();
   if (!isConfigured()) { _stato("Configura URL e token in ⚙️"); return; }
   _stato("Carico le notifiche dal PC…");
@@ -143,6 +222,7 @@ export async function apriBacheca(idDaAprire = null) {
   }
   if (mia !== _generazione || _el.pannello.classList.contains("hidden")) return;
   _ultime = _lista(dati);
+  _chiudiDecise();                    // v27
   const ultima = _ultime.length ? _ultime[0].ts : null;
   if (_vistoAllApertura === null) _vistoAllApertura = ultima ?? 0;   // segno assente: tutto già visto
   if (ultima !== null) _salvaVisto(Math.max(ultima, _leggiVisto() ?? 0));
@@ -177,11 +257,19 @@ function _lista(dati) {
 
 function _disegnaLista(visto, idDaAprire, aperte = new Set()) {
   _el.lista.replaceChildren();
+  // v27: il filtro. Se si apre una notifica precisa (tocco su una push) che il filtro nasconderebbe,
+  // il filtro si toglie: la notifica toccata si vede sempre.
+  if (_soloDaDecidere && idDaAprire && _ultime.some((n) => n.id === idDaAprire && _statoAzione(n) !== "da_decidere")) {
+    _soloDaDecidere = false;
+  }
+  const mostrate = _soloDaDecidere ? _daDecidere() : _ultime;
+  _aggiornaSommario();
   if (!_ultime.length) { _stato("Nessuna notifica negli ultimi 30 giorni."); return; }
+  if (!mostrate.length) { _stato("Niente da decidere: le notifiche decise sono in «Mostra tutte»."); return; }
   _stato("");
   let giorno = null;
   let daAprire = null;
-  for (const n of _ultime) {
+  for (const n of mostrate) {
     const quando = new Date(n.ts * 1000);
     const etichetta = _etichettaGiorno(quando);
     if (etichetta !== giorno) {
@@ -220,6 +308,7 @@ function _riga(n, quando, visto) {
     _span("not-segno", ko ? "⚠" : nuova ? "●" : ignoto ? "·" : ""),
     _span("not-ora", _hhmm(quando)),
     _span("not-fonte", String(n.fonte || "Kirk")),
+    _span("not-stato", ""),            // v27: l'etichetta dello stato, solo sulle notifiche con i tasti
     _span("not-inizio", testo.split("\n")[0]),
   );
   const intero = document.createElement("div");
@@ -235,8 +324,18 @@ function _riga(n, quando, visto) {
     intero.appendChild(e);
   }
   li.append(riga, intero);
+  _segnaStato(li, n);
   li.addEventListener("click", () => _apriRiga(li));
   return li;
+}
+
+/** v27: classe «azione-<stato>» ed etichetta della riga, da _statoAzione: si richiama dopo una decisione. */
+function _segnaStato(li, n) {
+  const stato = _statoAzione(n);
+  for (const c of [...li.classList]) if (c.startsWith("azione-")) li.classList.remove(c);
+  if (stato) li.classList.add(`azione-${stato}`);
+  const et = li.querySelector(".not-stato");
+  if (et) et.textContent = _etichettaStato(n);
 }
 
 // ── A4 (15/10/2026): i tre tasti sulle bozze dell'agente LinkedIn ─────────────────────────────────
@@ -253,12 +352,16 @@ function _azioni(n) {
   const box = document.createElement("div");
   box.className = "not-azioni";
   box.addEventListener("click", (e) => e.stopPropagation());   // il tocco sui tasti non chiude la riga
-  const scaduta = typeof n.azione.scade === "number" && n.azione.scade * 1000 < Date.now();
-  if (n.decisione) {
-    box.appendChild(_span("not-decisione", `✓ ${ETICHETTE_DECISIONE[n.decisione] || n.decisione}`));
+  const statoAzione = _statoAzione(n);   // v27: la stessa regola del conto e della tendina
+  if (statoAzione === "decisa") {
+    box.appendChild(_span("not-decisione", `✓ ${ETICHETTE_DECISIONE[n.decisione] || n.decisione || "decisa"}`));
     return box;
   }
-  if (scaduta) {
+  if (statoAzione === "superata") {
+    box.appendChild(_span("not-decisione", "Sostituita da una notifica più recente della stessa bozza: decidi su quella."));
+    return box;
+  }
+  if (statoAzione === "scaduta") {
     box.appendChild(_span("not-decisione", "Scaduta: decidila in sessione («in-attesa»)."));
     return box;
   }
@@ -293,6 +396,11 @@ async function _decidi(n, decisione, bottone, box, stato) {
     n.decisione = decisione;
     for (const b of bottoni) b.remove();
     stato.textContent = `✓ ${ETICHETTE_DECISIONE[decisione]}` + (r && r.lanciato === false ? " — il PC la esegue al prossimo giro" : "");
+    // v27: decisa dal telefono → via subito dalla tendina; la riga e il conto in testa si aggiornano
+    _chiudiInTendina([String(n.id)]);
+    const li = box.closest("li.notifica");
+    if (li) _segnaStato(li, n);
+    _aggiornaSommario();
   } catch (err) {
     stato.textContent = `✗ non registrata (${err.message}): riprova, o decidi in sessione`;
     for (const b of bottoni) { b.disabled = false; b.dataset.conferma = ""; b.textContent = b.dataset.etichetta; }

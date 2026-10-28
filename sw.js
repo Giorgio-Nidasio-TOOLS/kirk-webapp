@@ -1,3 +1,9 @@
+// v27 (28/10/2026): si vede subito cosa resta da decidere. Il titolo lo fa il PC («Da decidere · …»); a ogni
+//   push il PC manda anche `chiudi`, gli id delle notifiche gia' DECISE (dal telefono, in sessione, dal
+//   Tavolo): qui, dopo aver mostrato la nuova, si chiudono nella tendina quelle col tag «kirk-<id>» esatto.
+//   Chrome vuole che ogni push mostri una notifica (userVisibleOnly): niente push mute, la chiusura
+//   viaggia sulla push successiva; all'apertura la fa anche notifiche.js. Le informative: 24 ore (v25).
+//   Nella bacheca: «N da decidere» in testa e il filtro «Solo da decidere» (notifiche.js, index.html, style.css).
 // v26 (15/10/2026): i TRE TASTI sulle bozze dell'agente LinkedIn (A4). Una notifica puo' portare un'azione
 //   «approva_bozza»: nella bacheca compaiono Approva (due tocchi), Rivedi, Scarta; il tocco chiama
 //   POST /linkedin/bozza con id e impronta del testo mostrato, il PC manda solo se coincide e conferma.
@@ -40,7 +46,7 @@
 // ⚠️ Il numero di versione va SEMPRE alzato quando cambia un file della PWA:
 //    senza bump il telefono continua a servire la versione vecchia dalla cache.
 //    E se si aggiunge un file nuovo, va messo anche in ASSETS.
-const CACHE = "kirk-v26";
+const CACHE = "kirk-v27";
 // ⚠️ La copia dei pacchetti in coda (coda.js) vive in questa cache: NON e' una cache di
 //    versione e non va MAI cancellata all'attivazione, o si butta via la rete di sicurezza.
 const CACHE_COPIA = "kirk-coda-copia";
@@ -89,6 +95,9 @@ self.addEventListener("push", (event) => {
     data: { id },
   };
   if (typeof d.ts === "number") opzioni.timestamp = Math.round(d.ts * 1000);   // ora di PARTENZA
+  // v27: le gia' decise da togliere, per tag ESATTO («kirk-<id>»): mai per prefisso, mai una che il PC non ha nominato.
+  const decise = new Set(Array.isArray(d.chiudi)
+    ? d.chiudi.filter((x) => typeof x === "string" && x).map((x) => "kirk-" + x) : []);
   event.waitUntil((async () => {
     await self.registration.showNotification(d.title || "Kirk", opzioni);
     const finestre = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
@@ -100,7 +109,8 @@ self.addEventListener("push", (event) => {
       const inTendina = await self.registration.getNotifications();
       for (const n of inTendina) {
         if (n.tag === opzioni.tag) continue;   // la notifica appena mostrata non si chiude da sola
-        if (typeof n.timestamp === "number" && n.timestamp < soglia) n.close();
+        const vecchia = typeof n.timestamp === "number" && n.timestamp < soglia;
+        if (vecchia || decise.has(n.tag)) n.close();
       }
     } catch (_) { /* la pulizia non deve mai impedire ne' la notifica ne' il postMessage */ }
   })());

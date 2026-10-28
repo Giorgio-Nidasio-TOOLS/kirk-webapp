@@ -360,17 +360,33 @@ header {
   padding: 10px 2px 4px; border-bottom: 1px solid var(--border);
 }
 .notifica { padding: 8px 2px; border-bottom: 1px solid var(--border); cursor: pointer; }
+/* v27: flex invece di grid, perche' l'etichetta dello stato (.not-stato) c'e' solo sulle notifiche con i tasti */
 .not-riga {
-  display: grid; grid-template-columns: 1.1em auto auto 1fr; gap: 8px;
+  display: flex; gap: 8px; min-width: 0;
   align-items: baseline; font-size: 0.85rem;
 }
-.not-segno { color: var(--text-dim); text-align: center; }
+.not-segno { color: var(--text-dim); text-align: center; flex: 0 0 1.1em; }
+.not-ora, .not-fonte, .not-stato { flex: none; }
+.not-stato:empty { display: none; }
+.not-stato {
+  font-size: 0.72rem; padding: 1px 6px; border-radius: 6px;
+  border: 1px solid var(--border); color: var(--text-dim); white-space: nowrap;
+}
+/* v27 (28/10/2026): cio' che resta DA DECIDERE si vede a colpo d'occhio */
+.notifica.azione-da_decidere { border-left: 3px solid var(--warn); padding-left: 6px; }
+.notifica.azione-da_decidere .not-stato { background: var(--warn); border-color: var(--warn); color: var(--bg); font-weight: 700; }
+.notifiche-sommario { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 0.88rem; }
+.notifiche-sommario #notifiche-conto { flex: 1; color: var(--text-dim); }
+.notifiche-sommario.ci-sono #notifiche-conto { color: var(--warn); font-weight: 700; }
+/* .secondary nel selettore: deve vincere su `.panel button.secondary` (margin-top: 8px, width 100%) */
+.notifiche-sommario button.secondary { width: auto; margin-top: 0; padding: 6px 12px; }
+.notifiche-sommario button[aria-pressed="true"] { background: var(--warn); color: var(--bg); }
 .notifica.nuova .not-segno { color: var(--err); }
 .notifica.nuova .not-inizio { font-weight: 600; }
 .notifica.esito-ko .not-segno { color: var(--warn); }
 .not-ora { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .not-fonte { color: var(--highlight); font-weight: 600; white-space: nowrap; }
-.not-inizio { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.not-inizio { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .not-testo {
   margin: 8px 0 2px; padding: 10px 12px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
@@ -380,9 +396,16 @@ header {
 .not-esito { margin-top: 6px; color: var(--warn); font-size: 0.8rem; }
 /* A4 (15/10/2026, v26): i tre tasti sulle bozze dell'agente LinkedIn */
 .not-azioni { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.not-bottone { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.95rem; }
-.not-bottone.approva { border-color: var(--highlight); font-weight: 600; }
-.not-bottone.scarta { color: var(--err); }
-.not-bottone[data-conferma="1"] { background: var(--highlight); color: #fff; }
-.not-bottone:disabled { opacity: 0.5; }
+/* v27 (28/10/2026): «.panel» davanti a ogni regola. Fino alla v26 vinceva `.panel button` (piu' specifica di
+   `.not-bottone`): i tre tasti erano blocchi rossi a tutta larghezza e «Scarta», testo rosso su fondo rosso,
+   non si leggeva (foto del collaudo, 28/10). Stessa classe della trappola 2 (`.panel input`). */
+.panel .not-bottone {
+  flex: 1 1 0; width: auto; min-height: 44px; margin-top: 0;
+  padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: transparent; color: var(--text); font-size: 0.95rem; font-weight: 500;
+}
+.panel .not-bottone.approva { border-color: var(--highlight); font-weight: 600; }
+.panel .not-bottone.scarta { color: var(--err); border-color: var(--err); }
+.panel .not-bottone[data-conferma="1"] { background: var(--highlight); color: #fff; }
+.panel .not-bottone:disabled { opacity: 0.5; }
 .not-decisione { color: var(--text-dim); font-size: 0.85rem; flex-basis: 100%; }
